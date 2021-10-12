@@ -24,9 +24,11 @@ interface IDDbTableSchema {
 
 class DdbAdapter {
   private db: AWS.DynamoDB;
+  private client: AWS.DynamoDB.DocumentClient;
 
   constructor(db: AWS.DynamoDB) {
     this.db = db;
+    this.client = new AWS.DynamoDB.DocumentClient();
   }
 
   listTables() {
@@ -66,10 +68,55 @@ class DdbAdapter {
 
   scan(tableName: string) {
     return new Promise<AWS.DynamoDB.ItemList>((resolve, reject) => {
-      this.db.scan({ TableName: tableName }, (err, data) => {
+      debug(`Scan ${tableName}`);
+      this.client.scan({ TableName: tableName }, (err, data) => {
         if (err) reject(err.message);
         else {
           resolve(data.Items);
+        }
+      });
+    });
+  }
+
+  get(tableName: string, key: AWS.DynamoDB.DocumentClient.Key) {
+    return new Promise<AWS.DynamoDB.DocumentClient.GetItemOutput>((resolve, reject) => {
+      this.client.get({ TableName: tableName, Key: key }, (err, data) => {
+        if (err) reject(err.message);
+        else {
+          resolve(data);
+        }
+      });
+    });
+  }
+
+  put(tableName: string, item: AWS.DynamoDB.DocumentClient.PutItemInputAttributeMap) {
+    return new Promise<AWS.DynamoDB.DocumentClient.PutItemOutput>((resolve, reject) => {
+      this.client.put({ TableName: tableName, Item: item }, (err, data) => {
+        if (err) reject(err.message);
+        else {
+          resolve(data);
+        }
+      });
+    });
+  }
+
+  update(params: AWS.DynamoDB.DocumentClient.UpdateItemInput) {
+    return new Promise<AWS.DynamoDB.DocumentClient.UpdateItemOutput>((resolve, reject) => {
+      this.client.update(params, (err, data) => {
+        if (err) reject(err.message);
+        else {
+          resolve(data);
+        }
+      });
+    });
+  }
+
+  delete(params: AWS.DynamoDB.DocumentClient.DeleteItemInput) {
+    return new Promise<AWS.DynamoDB.DocumentClient.DeleteItemOutput>((resolve, reject) => {
+      this.client.delete(params, (err, data) => {
+        if (err) reject(err.message);
+        else {
+          resolve(data);
         }
       });
     });
@@ -98,7 +145,7 @@ class Db implements IDbAdapter {
     });
   }
 
-  async listChannels() {
+  async listChannels(tenant: string) {
     try {
       const items = await this.db.scan(this.channelsTableName);
       let channels: Channel[] = [];
@@ -115,6 +162,38 @@ class Db implements IDbAdapter {
       return [];
     }
   }
+
+  async addChannel(channel: Channel) {
+    const data = await this.db.get(this.channelsTableName, { id: channel.id });
+    if (data.Item.id) {
+      throw new Error("Channel exists");
+    }
+    await this.db.put(this.channelsTableName, { id: channel.id });
+  }
+
+  async updateChannel(channel: Channel) {
+    const params: AWS.DynamoDB.DocumentClient.UpdateItemInput = {
+      TableName: this.channelsTableName,
+      Key: { id: channel.id },
+      UpdateExpression: "set tenant=:t, title=:n",
+      ExpressionAttributeValues: {
+        ":t": channel.tenant,
+        ":n": channel.title,
+      },
+      ReturnValues: "UPDATED_NEW"
+    };
+    await this.db.update(params);
+    return true;
+  }
+
+  async getChannelById(id: string) {
+    const data = await this.db.get(this.channelsTableName, { id: id });
+    return new Channel({ id: data.Item.id.S, tenant: data.Item.tenant.S, title: data.Item.title.S });
+  }
+
+  async removeChannel(id: string) {
+    await this.db.delete({ TableName: this.channelsTableName, Key: { id: id } });
+  }
 }
 
 const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
@@ -126,10 +205,15 @@ const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
     const dbUrl = new URL(options.uri);
     const ddbEndpoint: string = `http://${dbUrl.host}`;
     const ddbRegion = dbUrl.pathname.slice(1);
-    const dbAdapter = new DdbAdapter(new AWS.DynamoDB({ endpoint: ddbEndpoint, region: ddbRegion }));
+    debug(`  region=${ddbRegion}, endpoint=${ddbEndpoint}`);
+    AWS.config.update({
+      region: ddbRegion
+    });
+    const dbAdapter = new DdbAdapter(new AWS.DynamoDB({ endpoint: ddbEndpoint }));
     const db = new Db(dbAdapter, options.channelsTableName || "channels", options.schedulesTableName || "schedules");
+    await db.init();
 
-    fastify.decorate('db', db);
+    fastify.decorate("db", db);
   } catch (error) {
     console.error(error);
   }

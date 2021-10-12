@@ -12,4 +12,16 @@ export class Channel {
     this.attrs.tenant = attrs.tenant;
     this.attrs.title = attrs.title;
   }
+
+  get id() {
+    return this.attrs.id;
+  }
+
+  get tenant() {
+    return this.attrs.tenant;
+  }
+
+  get title() {
+    return this.attrs.title;
+  }
 }

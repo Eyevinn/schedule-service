@@ -1,16 +1,23 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 
+import { IDbAdapter } from "../db/interface";
 import { Channel } from "../models/channelModel";
 
-const ChannelsAPI: FastifyPluginAsync = async (server: FastifyInstance, options: FastifyPluginOptions) => {
+// Declaration merging
+declare module 'fastify' {
+  export interface FastifyInstance {
+      db: IDbAdapter;
+  }
+}
+const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options: FastifyPluginOptions) => {
   const { prefix } = options;
 
-  server.register(async (server: FastifyInstance) => {
+  fastify.register(async (server: FastifyInstance) => {
     server.get("/channels", {}, async (request, reply) => {
       const tenant = request.headers["host"];
       try {
-        const channels: Channel[] = [];
+        const channels: Channel[] = await server.db.listChannels(tenant);
         return reply.code(200).send(channels);
       } catch (error) {
         request.log.error(error);
