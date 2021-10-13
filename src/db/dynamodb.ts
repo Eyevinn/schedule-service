@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import AWS from "aws-sdk";
+import { DynamoDB, config } from "aws-sdk";
 import Debug from "debug";
 import { IDbPluginOptions, IDbAdapter } from "./interface";
 import { Channel, ChannelAttrs } from "../models/channelModel";
@@ -23,19 +23,24 @@ interface IDDbTableSchema {
 }
 
 class DdbAdapter {
-  private db: AWS.DynamoDB;
-  private client: AWS.DynamoDB.DocumentClient;
+  private db: DynamoDB;
+  private client: DynamoDB.DocumentClient;
 
-  constructor(db: AWS.DynamoDB) {
+  constructor(db: DynamoDB, endpoint: string) {
     this.db = db;
-    this.client = new AWS.DynamoDB.DocumentClient();
+    this.client = new DynamoDB.DocumentClient({ endpoint: endpoint });
   }
 
   listTables() {
-    return new Promise<AWS.DynamoDB.TableNameList>((resolve, reject) => {
+    return new Promise<DynamoDB.TableNameList>((resolve, reject) => {
       this.db.listTables((err, data) => {
-        if (err) reject(err.message);
-        else resolve(data.TableNames);
+        if (err) {
+          debug(err);
+          reject(err.message);
+        } else {
+          debug(data);
+          resolve(data.TableNames);
+        }
       });
     });  
   }
@@ -44,6 +49,7 @@ class DdbAdapter {
     return new Promise<string>((resolve, reject) => {
       this.listTables().then(tables => {
         if (tables.includes(tableName)) {
+          debug(`Table ${tableName} already exists`);
           resolve(tableName);
         } else {
           const params = {
@@ -55,8 +61,10 @@ class DdbAdapter {
             ...schema,
           };
           this.db.createTable(params, (err, data) => {
-            if (err) reject(err.message);
-            else {
+            if (err) {
+              debug(err);
+              reject(err.message);
+            } else {
               debug(`Table ${tableName} created`);
               resolve(tableName);
             }
@@ -67,55 +75,65 @@ class DdbAdapter {
   }
 
   scan(tableName: string) {
-    return new Promise<AWS.DynamoDB.ItemList>((resolve, reject) => {
+    return new Promise<DynamoDB.ItemList>((resolve, reject) => {
       debug(`Scan ${tableName}`);
       this.client.scan({ TableName: tableName }, (err, data) => {
-        if (err) reject(err.message);
-        else {
+        if (err) {
+          debug(err);
+          reject(err.message);
+        } else {
           resolve(data.Items);
         }
       });
     });
   }
 
-  get(tableName: string, key: AWS.DynamoDB.DocumentClient.Key) {
-    return new Promise<AWS.DynamoDB.DocumentClient.GetItemOutput>((resolve, reject) => {
+  get(tableName: string, key: DynamoDB.DocumentClient.Key) {
+    return new Promise<DynamoDB.DocumentClient.GetItemOutput>((resolve, reject) => {
       this.client.get({ TableName: tableName, Key: key }, (err, data) => {
-        if (err) reject(err.message);
-        else {
+        if (err) {
+          debug(err);
+          reject(err.message);
+        } else {
           resolve(data);
         }
       });
     });
   }
 
-  put(tableName: string, item: AWS.DynamoDB.DocumentClient.PutItemInputAttributeMap) {
-    return new Promise<AWS.DynamoDB.DocumentClient.PutItemOutput>((resolve, reject) => {
+  put(tableName: string, item: DynamoDB.DocumentClient.PutItemInputAttributeMap) {
+    return new Promise<DynamoDB.DocumentClient.PutItemOutput>((resolve, reject) => {
       this.client.put({ TableName: tableName, Item: item }, (err, data) => {
-        if (err) reject(err.message);
-        else {
+        if (err) {
+          debug(err);
+          reject(err.message);
+        } else {
           resolve(data);
         }
       });
     });
   }
 
-  update(params: AWS.DynamoDB.DocumentClient.UpdateItemInput) {
-    return new Promise<AWS.DynamoDB.DocumentClient.UpdateItemOutput>((resolve, reject) => {
+  update(params: DynamoDB.DocumentClient.UpdateItemInput) {
+    return new Promise<DynamoDB.DocumentClient.UpdateItemOutput>((resolve, reject) => {
       this.client.update(params, (err, data) => {
-        if (err) reject(err.message);
-        else {
+        if (err) {
+          debug(err);
+          reject(err.message);
+        } else {
           resolve(data);
         }
       });
     });
   }
 
-  delete(params: AWS.DynamoDB.DocumentClient.DeleteItemInput) {
-    return new Promise<AWS.DynamoDB.DocumentClient.DeleteItemOutput>((resolve, reject) => {
+  delete(params: DynamoDB.DocumentClient.DeleteItemInput) {
+    return new Promise<DynamoDB.DocumentClient.DeleteItemOutput>((resolve, reject) => {
       this.client.delete(params, (err, data) => {
-        if (err) reject(err.message);
-        else {
+        if (err) {
+          debug(err);
+          reject(err.message);
+        } else {
           resolve(data);
         }
       });
@@ -131,7 +149,7 @@ class Db implements IDbAdapter {
   constructor(db: DdbAdapter, channelsTableName: string, schedulesTableName: string) {
     this.db = db;
     this.channelsTableName = channelsTableName;
-    this.schedulesTableName = this.schedulesTableName;
+    this.schedulesTableName = schedulesTableName;
   }
 
   async init() {
@@ -139,7 +157,7 @@ class Db implements IDbAdapter {
       KeySchema: [ { AttributeName: "id", KeyType: "HASH" }],
       AttributeDefinitions: [ { AttributeName: "id", AttributeType: "S" }]
     });
-    await this.db.createTableIfNotExists(this.schedulesTableName || "schedules", {
+    await this.db.createTableIfNotExists(this.schedulesTableName, {
       KeySchema: [ { AttributeName: "eventId", KeyType: "HASH" }],
       AttributeDefinitions: [ { AttributeName: "eventId", AttributeType: "S" }]
     });
@@ -172,7 +190,7 @@ class Db implements IDbAdapter {
   }
 
   async updateChannel(channel: Channel) {
-    const params: AWS.DynamoDB.DocumentClient.UpdateItemInput = {
+    const params: DynamoDB.DocumentClient.UpdateItemInput = {
       TableName: this.channelsTableName,
       Key: { id: channel.id },
       UpdateExpression: "set tenant=:t, title=:n",
@@ -206,10 +224,10 @@ const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
     const ddbEndpoint: string = `http://${dbUrl.host}`;
     const ddbRegion = dbUrl.pathname.slice(1);
     debug(`  region=${ddbRegion}, endpoint=${ddbEndpoint}`);
-    AWS.config.update({
+    config.update({
       region: ddbRegion
     });
-    const dbAdapter = new DdbAdapter(new AWS.DynamoDB({ endpoint: ddbEndpoint }));
+    const dbAdapter = new DdbAdapter(new DynamoDB({ endpoint: ddbEndpoint }), ddbEndpoint);
     const db = new Db(dbAdapter, options.channelsTableName || "channels", options.schedulesTableName || "schedules");
     await db.init();
 
