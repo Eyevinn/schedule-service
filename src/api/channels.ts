@@ -1,13 +1,16 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 
-import { IDbAdapter } from "../db/interface";
+import { IDbChannelsAdapter, IDbScheduleEventsAdapter } from "../db/interface";
 import { Channel } from "../models/channelModel";
 
 // Declaration merging
 declare module 'fastify' {
   export interface FastifyInstance {
-      db: IDbAdapter;
+      db: {
+        channels: IDbChannelsAdapter;
+        scheduleEvents: IDbScheduleEventsAdapter;
+      }
   }
 }
 const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options: FastifyPluginOptions) => {
@@ -17,7 +20,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
     server.get("/channels", {}, async (request, reply) => {
       const tenant = request.headers["host"];
       try {
-        const channels: Channel[] = await server.db.listChannels(tenant);
+        const channels: Channel[] = await server.db.channels.list(tenant);
         return reply.code(200).send(channels);
       } catch (error) {
         request.log.error(error);

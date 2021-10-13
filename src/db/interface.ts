@@ -7,13 +7,17 @@ export interface IDbPluginOptions {
   schedulesTableName?: string;
 }
 
-export interface IDbAdapter {
+export interface IDbChannelsAdapter {
   init: () => Promise<void>;
-  listChannels: (tenant: string) => Promise<Channel[]>;
-  addChannel: (channel: Channel) => Promise<void>;
-  updateChannel: (channel: Channel) => Promise<boolean>;
+  list: (tenant: string) => Promise<Channel[]>;
+  add: (channel: Channel) => Promise<void>;
+  update: (channel: Channel) => Promise<boolean>;
   getChannelById: (id: string) => Promise<Channel>;
-  removeChannel: (id: string) => Promise<void>;
+  remove: (id: string) => Promise<void>;
+}
+
+export interface IDbScheduleEventsAdapter {
+  init: () => Promise<void>;
   //addScheduleEvent: (scheduleEvent: ScheduleEvent) => Promise<ScheduleEvent>;
   //removeScheduleEvents: (channelId: string, rangeOpts: ScheduleRangeOptions) => Promise<number>;
   //removeEvent: (channelId: string, eventId: string) => Promise<boolean>;
