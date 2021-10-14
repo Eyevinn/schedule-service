@@ -6,7 +6,7 @@ export interface ScheduleEventAttrs {
   end_time: number;
   start?: string;
   end?: string;
-  uri: string;
+  url: string;
   duration: number;
 }
 
@@ -20,15 +20,17 @@ export class ScheduleEvent {
   private attrs: ScheduleEventAttrs;
 
   constructor(attrs: ScheduleEventAttrs) {
-    this.attrs.id = attrs.id;
-    this.attrs.channelId = attrs.channelId;
-    this.attrs.title = attrs.title;
-    this.attrs.start_time = attrs.start_time;
-    this.attrs.end_time = attrs.end_time;
-    this.attrs.start = new Date(attrs.start_time).toISOString();
-    this.attrs.end = new Date(attrs.end_time).toISOString();
-    this.attrs.uri = attrs.uri;
-    this.attrs.duration = attrs.duration;
+    this.attrs = {
+      id: attrs.id,
+      channelId: attrs.channelId,
+      title: attrs.title,
+      start_time: attrs.start_time,
+      end_time: attrs.end_time,
+      start: new Date(attrs.start_time).toISOString(),
+      end: new Date(attrs.end_time).toISOString(),
+      url: attrs.url,
+      duration: attrs.duration,
+    };
   }
 
   get item(): ScheduleEventAttrs {
@@ -40,7 +42,7 @@ export class ScheduleEvent {
       end_time: this.attrs.end_time,
       start: new Date(this.attrs.start_time).toISOString(),
       end: new Date(this.attrs.end_time).toISOString(),
-      uri: this.attrs.uri,
+      url: this.attrs.url,
       duration: this.attrs.duration,
     }
   }
@@ -49,12 +51,44 @@ export class ScheduleEvent {
     return this.attrs.id;
   }
 
+  get channelId() {
+    return this.attrs.channelId;
+  }
+
+  get title() {
+    return this.attrs.title;
+  }
+
+  get start_time() {
+    return this.attrs.start_time;
+  }
+
+  get end_time() {
+    return this.attrs.end_time;
+  }
+
+  get start() {
+    return new Date(this.attrs.start_time).toISOString();
+  }
+
+  get end() {
+    return new Date(this.attrs.end_time).toISOString();
+  }
+
+  get url() {
+    return this.attrs.url;
+  }
+
+  get duration() {
+    return this.attrs.duration;
+  }
+
   set title(title: string) {
     this.attrs.title = title;
   }
 
-  set uri(uri: string) {
-    this.attrs.uri = uri;
+  set url(url: string) {
+    this.attrs.url = url;
   }
 
   set start_time(start_time: number) {

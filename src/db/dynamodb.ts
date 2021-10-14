@@ -41,7 +41,6 @@ class DdbAdapter {
           debug(err);
           reject(err.message);
         } else {
-          debug(data);
           resolve(data.TableNames);
         }
       });
@@ -78,7 +77,7 @@ class DdbAdapter {
   }
 
   scan(tableName: string, filter?: any) {
-    return new Promise<DynamoDB.ItemList>((resolve, reject) => {
+    return new Promise<any[]>((resolve, reject) => {
       debug(`Scan ${tableName}`);
       let params: DynamoDB.ScanInput = {
         TableName: tableName,
@@ -186,9 +185,9 @@ class DbChannels implements IDbChannelsAdapter {
       items.forEach(item => {
         if (item.tenant.S === tenant) {
           channels.push(new Channel({
-            id: item.id.S,
-            tenant: item.tenant.S,
-            title: item.title.S,
+            id: item.id,
+            tenant: item.tenant,
+            title: item.title,
           }));
         }
       });
@@ -200,8 +199,8 @@ class DbChannels implements IDbChannelsAdapter {
   }
 
   async add(channel: Channel) {
-    const data = await this.db.get(this.channelsTableName, { id: channel.id });
-    if (data.Item.id) {
+    const data = await this.db.get(this.channelsTableName, { "id": channel.id });
+    if (data.Item && data.Item.id) {
       throw new Error("Channel exists");
     }
     await this.db.put(this.channelsTableName, channel.item);
@@ -223,12 +222,16 @@ class DbChannels implements IDbChannelsAdapter {
   }
 
   async getChannelById(id: string) {
-    const data = await this.db.get(this.channelsTableName, { id: id });
-    return new Channel({ id: data.Item.id.S, tenant: data.Item.tenant.S, title: data.Item.title.S });
+    const data = await this.db.get(this.channelsTableName, { "id": id });
+    if (data.Item) {
+      return new Channel({ id: data.Item.id, tenant: data.Item.tenant, title: data.Item.title });
+    } else {
+      return null;
+    }
   }
 
   async remove(id: string) {
-    await this.db.delete({ TableName: this.channelsTableName, Key: { id: id } });
+    await this.db.delete({ TableName: this.channelsTableName, Key: { "id": id } });
   }
 }
 
@@ -259,13 +262,13 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
     let scheduleEvents: ScheduleEvent[] = [];
     items.forEach(item => {
       scheduleEvents.push(new ScheduleEvent({
-        id: item.id.S,
-        channelId: item.channelId.S,
-        title: item.title.S,
-        start_time: parseInt(item.start_time.N, 10),
-        end_time: parseInt(item.end_time.N, 10),
-        uri: item.uri.S,
-        duration: parseInt(item.duration.N, 10),
+        id: item.id,
+        channelId: item.channelId,
+        title: item.title,
+        start_time: parseInt(item.start_time, 10),
+        end_time: parseInt(item.end_time, 10),
+        url: item.url,
+        duration: parseInt(item.duration, 10),
       }));
     });
 
@@ -315,8 +318,8 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
       },
     };
     if (rangeOpts.date) {
-      rangeOpts.start = dayjs(rangeOpts.date).unix();
-      rangeOpts.end = dayjs(rangeOpts.date).add(1, "day").unix();
+      rangeOpts.start = dayjs(rangeOpts.date).valueOf();
+      rangeOpts.end = dayjs(rangeOpts.date).add(1, "day").valueOf();
     }
 
     if (rangeOpts.start && !rangeOpts.end) {
@@ -373,23 +376,31 @@ class DbMRSSFeeds implements IDbMRSSFeedsAdapter {
 
   async list(tenant: string) {
     try {
-      const items = await this.db.scan(this.mrssFeedsTableName);
-      let mrssFeeds: MRSSFeed[] = [];
-      items.forEach(item => {
-        if (item.tenant.S === tenant) {
-          mrssFeeds.push(new MRSSFeed({
-            id: item.id.S,
-            tenant: item.tenant.S,
-            url: item.url.S,
-            channelId: item.channelId.S,
-          }));
-        }
-      });
-      return mrssFeeds;
+      return await (await this.listAll()).filter(feed => feed.tenant === tenant);
     } catch(error) {
       console.error(error);
       return [];
     }
+  }
+
+  async listAll() {
+    try {
+      const items = await this.db.scan(this.mrssFeedsTableName);
+      return items.map(item => new MRSSFeed({
+        id: item.id,
+        tenant: item.tenant,
+        url: item.url,
+        channelId: item.channelId,
+      }));
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  async add(mrssFeed: MRSSFeed) {
+    await this.db.put(this.mrssFeedsTableName, mrssFeed.item);
+    return mrssFeed;
   }
 }
 

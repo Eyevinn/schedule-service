@@ -1,6 +1,14 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
+import Debug from "debug";
+import dayjs from "dayjs";
+import { v4 as uuidv4 } from "uuid";
 
 import { MRSSFeed } from "../models/mrssFeedModel";
+import { ScheduleEvent } from "../models/scheduleModel";
+import { Channel } from "../models/channelModel";
+import { IDbMRSSFeedsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
+
+const debug = Debug("auto-scheduler");
 
 export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyInstance, options: FastifyPluginOptions) => {
   const { prefix } = options;
@@ -9,7 +17,7 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
     server.get("/mrss", {}, async (request, reply) => {
       const tenant = request.headers["host"];
       try {
-        const feeds: MRSSFeed[] = await server.db.mrssFeeds.list(tenant);;
+        const feeds: MRSSFeed[] = await server.db.mrssFeeds.list(tenant);
         return reply.code(200).send(feeds);
       } catch (error) {
         request.log.error(error);
@@ -20,11 +28,126 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
 };
 
 export class MRSSAutoScheduler {
-  constructor({ db }) {
+  private feedsDb: IDbMRSSFeedsAdapter;
+  private scheduleEventsDb: IDbScheduleEventsAdapter;
+  private activeFeeds: MRSSFeed[];
 
+  constructor(feedsDb: IDbMRSSFeedsAdapter, scheduleEventsDb: IDbScheduleEventsAdapter) {
+    this.feedsDb = feedsDb;
+    this.scheduleEventsDb = scheduleEventsDb;
+    this.activeFeeds = [];
   }
 
-  run() {
+  // insert demo feed if not exists
+  async bootstrap(channelsDb: IDbChannelsAdapter) {
+    const availableFeeds = await this.feedsDb.listAll();
+    if (availableFeeds.find(feed => feed.id === "eyevinn")) {
+      debug("Demo feed already available");
+    } else {
+      debug("Creating demo feed");
+      const demoFeed = new MRSSFeed({
+        id: "eyevinn",
+        tenant: "demo",
+        channelId: "eyevinn",
+        url: "https://testcontent.mrss.eyevinn.technology/eyevinn.mrss"
+      });
+      const demoChannel = await channelsDb.getChannelById("eyevinn");
+      if (!demoChannel) {
+        debug("Creating demo channel");
+        await channelsDb.add(new Channel({
+          id: "eyevinn",
+          tenant: "demo",
+          title: "Demo Channel"
+        }));
+      }
+      await this.feedsDb.add(demoFeed);
+    }
+  }
 
+  async run() {
+    this.activeFeeds = await this.feedsDb.listAll();
+    const timer = setInterval(async () => {
+      try {
+        debug("TICK started");
+        await this.tick();
+        debug("TICK completed");
+      } catch (err) {
+        console.error(err);
+      }
+    }, 5000);
+  }
+
+  async tick() {
+    for(const feed of this.activeFeeds) {
+      try {
+        await this.populate(feed);
+      } catch (error) {
+        debug(error);
+        console.error("Failed to populate schedule events for feed: " + feed.id);
+      }
+    }
+  }
+
+  private async populate(feed: MRSSFeed) {
+    const now = dayjs();
+    await feed.refresh();
+    const assets = feed.getAssets();
+    const scheduleEvents = await this.scheduleEventsDb.getScheduleEventsByChannelId(feed.channelId, {
+      start: now.subtract(2 * 60 * 60, "second").valueOf(),
+      end: now.add(12 * 60 * 60, "second").valueOf(),
+    });
+    const ongoingAndFutureScheduleEvents = this.findOngoingAndFutureEvents(scheduleEvents, now);
+    if (ongoingAndFutureScheduleEvents.length <= 4) {
+      const numberOfScheduleEvents = 5 - ongoingAndFutureScheduleEvents.length;
+      let scheduleEventsToAdd: ScheduleEvent[] = [];
+      let nextStartTime = this.findLastEndTime(ongoingAndFutureScheduleEvents, now);
+      for (let i = 0; i < numberOfScheduleEvents; i++) {
+        let asset = assets[Math.floor(Math.random() * assets.length)];
+        if (asset) {
+          const totalScheduleEventDuration = asset.duration;
+          const nextEndTime = nextStartTime + totalScheduleEventDuration * 1000;
+          debug(`Adding schedule event: title=${asset.title}, start=${new Date(nextStartTime).toISOString()}, end=${new Date(nextEndTime).toISOString()}`);
+          scheduleEventsToAdd.push(new ScheduleEvent({
+            id: uuidv4(),
+            channelId: feed.channelId,
+            title: asset.title,
+            duration: totalScheduleEventDuration,
+            start_time: nextStartTime,
+            end_time: nextEndTime,
+            url: asset.url
+          }));
+          nextStartTime = nextEndTime;
+        }
+      }
+      for (const scheduleEvent of scheduleEventsToAdd) {
+        await this.scheduleEventsDb.add(scheduleEvent);
+      }
+    }
+  }
+
+  private findOngoingAndFutureEvents(scheduleEvents: ScheduleEvent[], now): ScheduleEvent[] {
+    return scheduleEvents.filter(scheduleEvent => {
+      // debug(`  ${scheduleEvent.end_time} > ${now.valueOf()} && ${scheduleEvent.start_time} < ${now.valueOf()}`);
+      if (scheduleEvent.end_time > now.valueOf() && scheduleEvent.start_time < now.valueOf()) {
+        return true;
+      }
+      if (scheduleEvent.start_time > now.valueOf()) {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  private findLastEndTime(scheduleEvents: ScheduleEvent[], now): number {
+    if (scheduleEvents.length === 0) {
+      return now.valueOf();
+    }
+    let lastEndTime = now.valueOf();
+    for (let i = 0; i < scheduleEvents.length; i++) {
+      if (scheduleEvents[i].end_time > lastEndTime) {
+        lastEndTime = scheduleEvents[i].end_time;
+      }
+    }
+    return lastEndTime;
   }
 };

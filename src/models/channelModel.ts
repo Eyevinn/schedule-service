@@ -8,9 +8,11 @@ export class Channel {
   private attrs: ChannelAttrs;
 
   constructor(attrs: ChannelAttrs) {
-    this.attrs.id = attrs.id;
-    this.attrs.tenant = attrs.tenant;
-    this.attrs.title = attrs.title;
+    this.attrs = {
+      id: attrs.id,
+      tenant: attrs.tenant,
+      title: attrs.title,
+    };
   }
 
   get item(): ChannelAttrs {
