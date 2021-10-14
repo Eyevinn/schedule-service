@@ -1,19 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 
-import { IDbChannelsAdapter, IDbScheduleEventsAdapter, IDbMRSSFeedsAdapter } from "../db/interface";
 import { Channel } from "../models/channelModel";
-
-// Declaration merging
-declare module 'fastify' {
-  export interface FastifyInstance {
-      db: {
-        channels: IDbChannelsAdapter;
-        scheduleEvents: IDbScheduleEventsAdapter;
-        mrssFeeds: IDbMRSSFeedsAdapter;
-      }
-  }
-}
 
 const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options: FastifyPluginOptions) => {
   const { prefix } = options;

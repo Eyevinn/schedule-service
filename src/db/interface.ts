@@ -1,5 +1,6 @@
 import { Channel } from "../models/channelModel";
 import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
+import { MRSSFeed } from "../models/mrssFeedModel";
 
 export interface IDbPluginOptions {
   uri: string;
@@ -27,4 +28,5 @@ export interface IDbScheduleEventsAdapter {
 
 export interface IDbMRSSFeedsAdapter {
   init: () => Promise<void>;
+  list: (tenant: string) => Promise<MRSSFeed[]>;
 }

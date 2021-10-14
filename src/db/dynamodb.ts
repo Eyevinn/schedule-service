@@ -6,6 +6,7 @@ import Debug from "debug";
 import { IDbPluginOptions, IDbChannelsAdapter, IDbScheduleEventsAdapter, IDbMRSSFeedsAdapter } from "./interface";
 import { Channel } from "../models/channelModel";
 import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
+import { MRSSFeed } from "../models/mrssFeedModel";
 
 const debug = Debug("db-dynamodb");
 
@@ -368,6 +369,27 @@ class DbMRSSFeeds implements IDbMRSSFeedsAdapter {
       KeySchema: [ { AttributeName: "id", KeyType: "HASH" }],
       AttributeDefinitions: [ { AttributeName: "id", AttributeType: "S" }]
     });
+  }
+
+  async list(tenant: string) {
+    try {
+      const items = await this.db.scan(this.mrssFeedsTableName);
+      let mrssFeeds: MRSSFeed[] = [];
+      items.forEach(item => {
+        if (item.tenant.S === tenant) {
+          mrssFeeds.push(new MRSSFeed({
+            id: item.id.S,
+            tenant: item.tenant.S,
+            url: item.url.S,
+            channelId: item.channelId.S,
+          }));
+        }
+      });
+      return mrssFeeds;
+    } catch(error) {
+      console.error(error);
+      return [];
+    }
   }
 }
 

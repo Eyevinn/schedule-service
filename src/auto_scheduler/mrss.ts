@@ -9,7 +9,7 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
     server.get("/mrss", {}, async (request, reply) => {
       const tenant = request.headers["host"];
       try {
-        const feeds: MRSSFeed[] = [];
+        const feeds: MRSSFeed[] = await server.db.mrssFeeds.list(tenant);;
         return reply.code(200).send(feeds);
       } catch (error) {
         request.log.error(error);
