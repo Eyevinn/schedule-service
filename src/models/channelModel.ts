@@ -5,12 +5,20 @@ export interface ChannelAttrs {
 }
 
 export class Channel {
-  attrs: ChannelAttrs;
+  private attrs: ChannelAttrs;
 
   constructor(attrs: ChannelAttrs) {
     this.attrs.id = attrs.id;
     this.attrs.tenant = attrs.tenant;
     this.attrs.title = attrs.title;
+  }
+
+  get item(): ChannelAttrs {
+    return {
+      id: this.attrs.id,
+      tenant: this.attrs.tenant,
+      title: this.attrs.title,
+    };
   }
 
   get id() {

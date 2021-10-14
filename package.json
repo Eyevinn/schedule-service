@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.1004.0",
+    "dayjs": "^1.10.7",
     "debug": "^4.3.2",
     "fastify": "^3.22.0",
     "fastify-plugin": "^3.0.0"

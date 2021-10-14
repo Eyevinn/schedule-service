@@ -5,6 +5,7 @@ export interface IDbPluginOptions {
   uri: string;
   channelsTableName?: string;
   schedulesTableName?: string;
+  mrssFeedsTableName?: string;
 }
 
 export interface IDbChannelsAdapter {
@@ -18,8 +19,12 @@ export interface IDbChannelsAdapter {
 
 export interface IDbScheduleEventsAdapter {
   init: () => Promise<void>;
-  //addScheduleEvent: (scheduleEvent: ScheduleEvent) => Promise<ScheduleEvent>;
-  //removeScheduleEvents: (channelId: string, rangeOpts: ScheduleRangeOptions) => Promise<number>;
-  //removeEvent: (channelId: string, eventId: string) => Promise<boolean>;
-  //getScheduleEventsByChannelId: (channelId: string, rangeOpts: ScheduleRangeOptions) => Promise<ScheduleEvent[]>;
+  add: (scheduleEvent: ScheduleEvent) => Promise<ScheduleEvent>;
+  getScheduleEventsByChannelId: (channelId: string, rangeOpts: ScheduleRangeOptions) => Promise<ScheduleEvent[]>;
+  remove: (id: string) => Promise<boolean>;
+  removeScheduleEvents: (channelId: string, rangeOpts: ScheduleRangeOptions) => Promise<number>;
+}
+
+export interface IDbMRSSFeedsAdapter {
+  init: () => Promise<void>;
 }

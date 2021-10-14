@@ -1,9 +1,11 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 import { DynamoDB, config } from "aws-sdk";
+import dayjs from "dayjs";
 import Debug from "debug";
-import { IDbPluginOptions, IDbChannelsAdapter, IDbScheduleEventsAdapter } from "./interface";
-import { Channel, ChannelAttrs } from "../models/channelModel";
+import { IDbPluginOptions, IDbChannelsAdapter, IDbScheduleEventsAdapter, IDbMRSSFeedsAdapter } from "./interface";
+import { Channel } from "../models/channelModel";
+import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
 
 const debug = Debug("db-dynamodb");
 
@@ -74,17 +76,34 @@ class DdbAdapter {
     });    
   }
 
-  scan(tableName: string) {
+  scan(tableName: string, filter?: any) {
     return new Promise<DynamoDB.ItemList>((resolve, reject) => {
       debug(`Scan ${tableName}`);
-      this.client.scan({ TableName: tableName }, (err, data) => {
+      let params: DynamoDB.ScanInput = {
+        TableName: tableName,
+      };
+      if (filter) {
+        params = {
+          ...params,
+          ...filter
+        };
+      }
+      let items = [];
+      const onScanDelegate = (err, data) => {
         if (err) {
           debug(err);
           reject(err.message);
         } else {
-          resolve(data.Items);
+          items = items.concat(data.Items);
+          if (typeof data.LastEvaluatedKey != "undefined") {
+            params.ExclusiveStartKey = data.LastEvaluatedKey;
+            this.client.scan(params, onScanDelegate);
+          } else {
+            resolve(items);
+          }
         }
-      });
+      };
+      this.client.scan(params, onScanDelegate);
     });
   }
 
@@ -141,6 +160,8 @@ class DdbAdapter {
   }
 }
 
+// ******************************************************************** //
+
 class DbChannels implements IDbChannelsAdapter {
   private db: DdbAdapter;
   private channelsTableName: string;
@@ -182,7 +203,7 @@ class DbChannels implements IDbChannelsAdapter {
     if (data.Item.id) {
       throw new Error("Channel exists");
     }
-    await this.db.put(this.channelsTableName, { id: channel.id });
+    await this.db.put(this.channelsTableName, channel.item);
   }
 
   async update(channel: Channel) {
@@ -221,11 +242,133 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
 
   async init() {
     await this.db.createTableIfNotExists(this.schedulesTableName, {
-      KeySchema: [ { AttributeName: "eventId", KeyType: "HASH" }],
-      AttributeDefinitions: [ { AttributeName: "eventId", AttributeType: "S" }]
+      KeySchema: [ { AttributeName: "id", KeyType: "HASH" }],
+      AttributeDefinitions: [ { AttributeName: "id", AttributeType: "S" }]
     });
   }
 
+  async add(scheduleEvent: ScheduleEvent) {
+    await this.db.put(this.schedulesTableName, scheduleEvent.item);
+    return scheduleEvent;
+  }
+
+  async getScheduleEventsByChannelId(channelId: string, rangeOpts: ScheduleRangeOptions) {
+    const filter = this.rangeToFilter(channelId, rangeOpts);
+    const items = await this.db.scan(this.schedulesTableName, filter);
+    let scheduleEvents: ScheduleEvent[] = [];
+    items.forEach(item => {
+      scheduleEvents.push(new ScheduleEvent({
+        id: item.id.S,
+        channelId: item.channelId.S,
+        title: item.title.S,
+        start_time: parseInt(item.start_time.N, 10),
+        end_time: parseInt(item.end_time.N, 10),
+        uri: item.uri.S,
+        duration: parseInt(item.duration.N, 10),
+      }));
+    });
+
+    return scheduleEvents;
+  }
+
+  async remove(id: string) {
+    try {
+      await this.db.delete({ TableName: this.schedulesTableName, Key: { "id": id } });
+    } catch (error) {
+      debug(error);
+      return false;
+    }
+    return true;
+  };
+
+  async removeScheduleEvents(channelId: string, rangeOpts: ScheduleRangeOptions) {
+    const filter = this.rangeToFilter(channelId, rangeOpts);
+    let eventsToRemove = [];
+    let numEntriesRemoved = 0;
+    try {
+      const items = await this.db.scan(this.schedulesTableName, filter);
+      eventsToRemove = eventsToRemove.concat(items.map(item => item.id.S));
+      if (eventsToRemove.length > 0) {
+        for (const eventId of eventsToRemove) {
+          try {
+            await this.remove(eventId);
+            numEntriesRemoved++;
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      }
+      return numEntriesRemoved;
+    }catch (error) {
+      console.error(error);
+      throw new Error("Failed to remove schedule events " + error);
+    }
+  }
+
+  private rangeToFilter(channelId: string, rangeOpts: ScheduleRangeOptions) {
+    let filter: any = {
+      ProjectExpression: "channelId",
+      FilterExpression: "channelId = :chId",
+      ExpressionAttributeValues: {
+        ":chId": channelId,
+      },
+    };
+    if (rangeOpts.date) {
+      rangeOpts.start = dayjs(rangeOpts.date).unix();
+      rangeOpts.end = dayjs(rangeOpts.date).add(1, "day").unix();
+    }
+
+    if (rangeOpts.start && !rangeOpts.end) {
+      filter = {
+        ProjectExpression: "#s, channelId",
+        FilterExpression: "#s >= :start AND channelId = :chId",
+        ExpressionAttributeNames: { "#s": "start_time" },
+        ExpressionAttributeValues: {
+          ":chId": channelId,
+          ":start": rangeOpts.start,
+        }
+      };
+    } else if (!rangeOpts.start && rangeOpts.end) {
+      filter = {
+        ProjectExpression: "#s, channelId",
+        FilterExpression: "#s < :end AND channelId = :chId",
+        ExpressionAttributeNames: { "#s": "start_time" },
+        ExpressionAttributeValues: {
+          ":chId": channelId,
+          ":end": rangeOpts.end,
+        }
+      };
+    } else if (rangeOpts.start && rangeOpts.end) {
+      filter = {
+        ProjectExpression: "#s, channelId",
+        FilterExpression: "#s >= :start AND #s < :end AND channelId = :chId",
+        ExpressionAttributeNames: { "#s": "start_time" },
+        ExpressionAttributeValues: {
+          ":chId": channelId,
+          ":start": rangeOpts.start,
+          ":end": rangeOpts.end,
+        }
+      };
+    }
+    return filter;
+  }
+}
+
+class DbMRSSFeeds implements IDbMRSSFeedsAdapter {
+  private db: DdbAdapter;
+  private mrssFeedsTableName: string;
+
+  constructor(db: DdbAdapter, mrssFeedsTableName: string) {
+    this.db = db;
+    this.mrssFeedsTableName = mrssFeedsTableName;
+  }
+
+  async init() {
+    await this.db.createTableIfNotExists(this.mrssFeedsTableName, {
+      KeySchema: [ { AttributeName: "id", KeyType: "HASH" }],
+      AttributeDefinitions: [ { AttributeName: "id", AttributeType: "S" }]
+    });
+  }
 }
 
 const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
@@ -246,8 +389,10 @@ const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
     await dbChannels.init();
     const dbScheduleEvents = new DbScheduleEvents(dbAdapter, options.schedulesTableName || "schedules");
     await dbScheduleEvents.init();
+    const dbMRSSFeeds = new DbMRSSFeeds(dbAdapter, options.mrssFeedsTableName || "mrssFeeds");
+    await dbMRSSFeeds.init();
 
-    fastify.decorate("db", { channels: dbChannels, scheduleEvents: dbScheduleEvents });
+    fastify.decorate("db", { channels: dbChannels, scheduleEvents: dbScheduleEvents, mrssFeeds: dbMRSSFeeds });
   } catch (error) {
     console.error(error);
   }
