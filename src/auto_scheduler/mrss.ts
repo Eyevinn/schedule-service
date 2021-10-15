@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
+import fp from "fastify-plugin";
 import Debug from "debug";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
@@ -27,19 +28,23 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
   }, { prefix });
 };
 
+export default fp(MRSSAutoSchedulerAPI);
+
 export class MRSSAutoScheduler {
   private feedsDb: IDbMRSSFeedsAdapter;
   private scheduleEventsDb: IDbScheduleEventsAdapter;
+  private channelsDb: IDbChannelsAdapter;
   private activeFeeds: MRSSFeed[];
 
-  constructor(feedsDb: IDbMRSSFeedsAdapter, scheduleEventsDb: IDbScheduleEventsAdapter) {
+  constructor(feedsDb: IDbMRSSFeedsAdapter, scheduleEventsDb: IDbScheduleEventsAdapter, channelsDb: IDbChannelsAdapter) {
     this.feedsDb = feedsDb;
     this.scheduleEventsDb = scheduleEventsDb;
+    this.channelsDb = channelsDb;
     this.activeFeeds = [];
   }
 
   // insert demo feed if not exists
-  async bootstrap(channelsDb: IDbChannelsAdapter) {
+  async bootstrap() {
     const availableFeeds = await this.feedsDb.listAll();
     if (availableFeeds.find(feed => feed.id === "eyevinn")) {
       debug("Demo feed already available");
@@ -51,10 +56,10 @@ export class MRSSAutoScheduler {
         channelId: "eyevinn",
         url: "https://testcontent.mrss.eyevinn.technology/eyevinn.mrss"
       });
-      const demoChannel = await channelsDb.getChannelById("eyevinn");
+      const demoChannel = await this.channelsDb.getChannelById("eyevinn");
       if (!demoChannel) {
         debug("Creating demo channel");
-        await channelsDb.add(new Channel({
+        await this.channelsDb.add(new Channel({
           id: "eyevinn",
           tenant: "demo",
           title: "Demo Channel"
