@@ -1,3 +1,5 @@
+import { Type } from '@sinclair/typebox'
+
 export interface ChannelAttrs {
   id: string;
   tenant: string;
@@ -6,6 +8,12 @@ export interface ChannelAttrs {
 
 export class Channel {
   private attrs: ChannelAttrs;
+
+  public static schema = Type.Object({
+    id: Type.String(),
+    tenant: Type.String(),
+    title: Type.String(),
+  });
 
   constructor(attrs: ChannelAttrs) {
     this.attrs = {

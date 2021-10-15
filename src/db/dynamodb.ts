@@ -180,16 +180,24 @@ class DbChannels implements IDbChannelsAdapter {
 
   async list(tenant: string) {
     try {
+      return await (await this.listAll()).filter(channel => channel.tenant === tenant);
+    } catch(error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  async listAll() {
+    try {
       const items = await this.db.scan(this.channelsTableName);
+      debug(items);
       let channels: Channel[] = [];
       items.forEach(item => {
-        if (item.tenant.S === tenant) {
-          channels.push(new Channel({
-            id: item.id,
-            tenant: item.tenant,
-            title: item.title,
-          }));
-        }
+        channels.push(new Channel({
+          id: item.id,
+          tenant: item.tenant,
+          title: item.title,
+        }));
       });
       return channels;
     } catch(error) {

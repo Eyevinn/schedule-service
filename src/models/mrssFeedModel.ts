@@ -2,6 +2,7 @@ import fetch from "node-fetch";
 import xmlparser from "fast-xml-parser";
 import dayjs from "dayjs";
 import Debug from "debug";
+import { Type } from '@sinclair/typebox'
 
 import hlsDuration from "@eyevinn/hls-duration";
 
@@ -29,6 +30,13 @@ interface MRSSCache {
 export class MRSSFeed {
   private attrs: MRSSFeedAttr;
   private cache: MRSSCache;
+
+  public static schema = Type.Object({
+    id: Type.String(),
+    tenant: Type.String(),
+    url: Type.String(),
+    channelId: Type.String(),
+  });
 
   constructor(attrs: MRSSFeedAttr) {
     this.attrs = {

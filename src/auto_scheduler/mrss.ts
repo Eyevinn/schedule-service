@@ -9,17 +9,31 @@ import { ScheduleEvent } from "../models/scheduleModel";
 import { Channel } from "../models/channelModel";
 import { IDbMRSSFeedsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
 
-const debug = Debug("auto-scheduler");
+const debug = Debug("mrss-auto-scheduler");
 
 export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyInstance, options: FastifyPluginOptions) => {
   const { prefix } = options;
 
   server.register(async (server: FastifyInstance) => {
-    server.get("/mrss", {}, async (request, reply) => {
+    server.get("/mrss", {
+      schema: {
+        response: {
+          200: {
+            type: "array",
+            items: MRSSFeed.schema,
+          }
+        }
+      }
+    }, async (request, reply) => {
       const tenant = request.headers["host"];
       try {
-        const feeds: MRSSFeed[] = await server.db.mrssFeeds.list(tenant);
-        return reply.code(200).send(feeds);
+        if (tenant.match(/^localhost/)) {
+          const feeds: MRSSFeed[] = await server.db.mrssFeeds.listAll();
+          return reply.code(200).send(feeds);
+        } else {
+          const feeds: MRSSFeed[] = await server.db.mrssFeeds.list(tenant);
+          return reply.code(200).send(feeds);
+        }
       } catch (error) {
         request.log.error(error);
         return reply.send(500);

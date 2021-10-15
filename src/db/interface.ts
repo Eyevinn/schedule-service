@@ -12,6 +12,7 @@ export interface IDbPluginOptions {
 export interface IDbChannelsAdapter {
   init: () => Promise<void>;
   list: (tenant: string) => Promise<Channel[]>;
+  listAll: () => Promise<Channel[]>;
   add: (channel: Channel) => Promise<void>;
   update: (channel: Channel) => Promise<boolean>;
   getChannelById: (id: string) => Promise<Channel>;
