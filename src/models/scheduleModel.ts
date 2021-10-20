@@ -1,3 +1,5 @@
+import { Type } from '@sinclair/typebox'
+
 export interface ScheduleEventAttrs {
   id: string;
   channelId: string;
@@ -18,6 +20,18 @@ export interface ScheduleRangeOptions {
 
 export class ScheduleEvent {
   private attrs: ScheduleEventAttrs;
+
+  public static schema = Type.Object({
+    id: Type.String(),
+    channelId: Type.String(),
+    title: Type.String(),
+    start_time: Type.Number(),
+    end_time: Type.Number(),
+    start: Type.String(),
+    end: Type.String(),
+    url: Type.String(),
+    duration: Type.Number(),
+  });
 
   constructor(attrs: ScheduleEventAttrs) {
     this.attrs = {
