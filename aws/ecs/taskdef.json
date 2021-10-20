@@ -1,0 +1,62 @@
+{
+    "family": "schedule-service", 
+    "networkMode": "awsvpc", 
+    "executionRoleArn": "arn:aws:iam::590877988961:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "schedule-service", 
+            "image": "590877988961.dkr.ecr.eu-north-1.amazonaws.com/eyevinn/schedule-service:latest", 
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8080, 
+                    "hostPort": 8080, 
+                    "protocol": "tcp"
+                }
+            ], 
+            "environment": [
+                {
+                    "name": "PORT",
+                    "value": "8080"
+                },
+                {
+                    "name": "IF",
+                    "value": "0.0.0.0"
+                },
+                {
+                    "name": "DB",
+                    "value": "dynamodb://aws/eu-north-1"
+                },
+                {
+                    "name": "DB_TABLE_PREFIX",
+                    "value": "sto"
+                },
+                {
+                    "name": "DEBUG",
+                    "value": "mrss-*,db-*,api-*"
+                },
+                {
+                    "name": "AWS_ACCESS_KEY_ID",
+                    "value": "AKIAYTEYSTBQ2KHMFB5A"
+                },
+                {
+                    "name": "AWS_SECRET_ACCESS_KEY",
+                    "value": "PQKW+vIxwXiqffkotIoqAHYHmb73ZHIJuEup/euZ"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/schedule-service",
+                    "awslogs-region": "eu-north-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ], 
+    "requiresCompatibilities": [
+        "FARGATE"
+    ], 
+    "cpu": "256", 
+    "memory": "512"
+}
