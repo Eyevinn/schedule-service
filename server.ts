@@ -36,7 +36,7 @@ const start = async() => {
   await server.register(MRSSAutoSchedulerAPI, { prefix: "/api/v1" });
   
   const mrssAutoScheduler = new MRSSAutoScheduler(server.db.mrssFeeds, server.db.scheduleEvents, server.db.channels);
-  await mrssAutoScheduler.bootstrap();
+  await mrssAutoScheduler.bootstrap(process.env.DEMO_TENANT || "demo");
   await mrssAutoScheduler.run();
   
   server.listen(process.env.PORT || 8080, process.env.IF || "127.0.0.1", (err, address) => {

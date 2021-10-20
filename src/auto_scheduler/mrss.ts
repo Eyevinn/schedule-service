@@ -58,7 +58,7 @@ export class MRSSAutoScheduler {
   }
 
   // insert demo feed if not exists
-  async bootstrap() {
+  async bootstrap(demoTenant: string) {
     const availableFeeds = await this.feedsDb.listAll();
     if (availableFeeds.find(feed => feed.id === "eyevinn")) {
       debug("Demo feed already available");
@@ -66,7 +66,7 @@ export class MRSSAutoScheduler {
       debug("Creating demo feed");
       const demoFeed = new MRSSFeed({
         id: "eyevinn",
-        tenant: "demo",
+        tenant: demoTenant,
         channelId: "eyevinn",
         url: "https://testcontent.mrss.eyevinn.technology/eyevinn.mrss"
       });
@@ -75,7 +75,7 @@ export class MRSSAutoScheduler {
         debug("Creating demo channel");
         await this.channelsDb.add(new Channel({
           id: "eyevinn",
-          tenant: "demo",
+          tenant: demoTenant,
           title: "Demo Channel"
         }));
       }
