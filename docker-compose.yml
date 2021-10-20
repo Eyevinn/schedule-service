@@ -1,0 +1,28 @@
+version: "3.9"
+networks:
+  schedule-net:
+    driver: bridge
+
+services:
+  schedule-service:
+    depends_on:
+      - ddb
+    build: .
+    image: schedule-service:local
+    environment:
+      - PORT=8080
+      - IF=0.0.0.0
+      - DB=dynamodb://ddb:8000/eu-north-1
+      - DEBUG=mrss-*,db-*,api-*
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+    ports:
+      - 8080:8080
+    networks:
+      - schedule-net
+  ddb:
+    image: amazon/dynamodb-local
+    ports:
+      - 8000:8000
+    networks:
+      - schedule-net
