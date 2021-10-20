@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc --project ./",
     "start": "node dist/server.js",
+    "postversion": "git push && git push --tags",
     "test": "echo \"WARN: no test specified\" && exit 0"
   },
   "author": "Eyevinn Technology AB (work@eyevinn.se)",
