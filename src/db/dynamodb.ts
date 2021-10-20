@@ -29,7 +29,7 @@ class DdbAdapter {
   private db: DynamoDB;
   private client: DynamoDB.DocumentClient;
 
-  constructor(db: DynamoDB, endpoint: string) {
+  constructor(db: DynamoDB, endpoint?: string) {
     this.db = db;
     this.client = new DynamoDB.DocumentClient({ endpoint: endpoint });
   }
@@ -425,7 +425,13 @@ const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
     config.update({
       region: ddbRegion
     });
-    const dbAdapter = new DdbAdapter(new DynamoDB({ endpoint: ddbEndpoint }), ddbEndpoint);
+    let dbAdapter;
+    if (dbUrl.host !== "aws") {
+      debug("  using custom endpoint for DynamoDB");
+      dbAdapter = new DdbAdapter(new DynamoDB({ endpoint: ddbEndpoint }), ddbEndpoint);
+    } else {
+      dbAdapter = new DdbAdapter(new DynamoDB());
+    }
     const dbChannels = new DbChannels(dbAdapter, options.channelsTableName || "channels");
     await dbChannels.init();
     const dbScheduleEvents = new DbScheduleEvents(dbAdapter, options.schedulesTableName || "schedules");
