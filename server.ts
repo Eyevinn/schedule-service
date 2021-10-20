@@ -7,6 +7,7 @@ import db from "./src/db/dynamodb";
 import { MRSSAutoSchedulerAPI, MRSSAutoScheduler } from "./src/auto_scheduler/mrss";
 
 const dbUrl = process.env.DB || "dynamodb://localhost:5000/eu-north-1";
+const dbTablePrefix = process.env.DB_TABLE_PREFIX || "local";
 
 const start = async() => {
   const server = fastify({ ignoreTrailingSlash: true });
@@ -25,7 +26,12 @@ const start = async() => {
     },
     exposeRoute: true,
   });
-  await server.register(db, { uri: dbUrl });
+  await server.register(db, { 
+    uri: dbUrl,
+    channelsTableName: dbTablePrefix + "_channels",
+    schedulesTableName: dbTablePrefix + "_schedules",
+    mrssFeedsTableName: dbTablePrefix + "_mrssFeeds",
+  });
   await server.register(ChannelsAPI, { prefix: "/api/v1" });
   await server.register(MRSSAutoSchedulerAPI, { prefix: "/api/v1" });
   
@@ -33,7 +39,7 @@ const start = async() => {
   await mrssAutoScheduler.bootstrap();
   await mrssAutoScheduler.run();
   
-  server.listen(process.env.PORT || 8080, (err, address) => {
+  server.listen(process.env.PORT || 8080, process.env.IF || "127.0.0.1", (err, address) => {
     if (err) {
       console.error(err);
       process.exit(1);
