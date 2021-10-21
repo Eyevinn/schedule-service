@@ -68,7 +68,7 @@ export class MRSSAutoScheduler {
         id: "eyevinn",
         tenant: demoTenant,
         channelId: "eyevinn",
-        url: "https://testcontent.mrss.eyevinn.technology/eyevinn.mrss"
+        url: "https://testcontent.mrss.eyevinn.technology/eyevinn.mrss?preroll=true"
       });
       const demoChannel = await this.channelsDb.getChannelById("eyevinn");
       if (!demoChannel) {
