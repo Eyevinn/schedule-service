@@ -1,6 +1,6 @@
 {
   "name": "eyevinn-schedule-service",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Service for automatic schedule creation",
   "main": "dist/server.js",
   "scripts": {
