@@ -16,6 +16,7 @@ export interface ScheduleRangeOptions {
   date?: string;
   start?: number;
   end?: number;
+  age?: number;
 }
 
 export class ScheduleEvent {

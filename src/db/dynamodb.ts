@@ -310,6 +310,7 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
           }
         }
       }
+      debug(`Removed ${numEntriesRemoved} schedule events`);
       return numEntriesRemoved;
     }catch (error) {
       console.error(error);
@@ -362,6 +363,17 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
         }
       };
     }
+
+    if (rangeOpts.age) {
+      filter = {
+        ProjectExpression: "end_time, channelId",
+        FilterExpression: "end_time <= :val AND channelId = :chId",
+        ExpressionAttributeValues: {
+          ":chId": channelId,
+          ":val": dayjs().subtract(rangeOpts.age, "second").valueOf(),
+        }
+      };
+    }
     return filter;
   }
 }
@@ -399,6 +411,7 @@ class DbMRSSFeeds implements IDbMRSSFeedsAdapter {
         tenant: item.tenant,
         url: item.url,
         channelId: item.channelId,
+        config: item.config,
       }));
     } catch (error) {
       console.error(error);
