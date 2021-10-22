@@ -8,11 +8,16 @@ import hlsDuration from "@eyevinn/hls-duration";
 
 const debug = Debug("mrss-feed");
 
+interface MRSSFeedConfig {
+  scheduleRetention: number,
+}
+
 export interface MRSSFeedAttr {
   id: string;
   tenant: string;
   url: string;
   channelId: string;
+  config: MRSSFeedConfig;
 }
 
 export interface MRSSAsset {
@@ -44,6 +49,7 @@ export class MRSSFeed {
       tenant: attrs.tenant,
       url: attrs.url,
       channelId: attrs.channelId,
+      config: attrs.config,
     };
   }
 
@@ -52,7 +58,8 @@ export class MRSSFeed {
       id: this.attrs.id,
       tenant: this.attrs.tenant,
       url: this.attrs.url,
-      channelId: this.attrs.channelId
+      channelId: this.attrs.channelId,
+      config: this.attrs.config,
     };
   }
 
@@ -70,6 +77,10 @@ export class MRSSFeed {
 
   get channelId() {
     return this.attrs.channelId;
+  }
+
+  get config() {
+    return this.attrs.config;
   }
 
   getAssets() {

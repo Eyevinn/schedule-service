@@ -68,7 +68,10 @@ export class MRSSAutoScheduler {
         id: "eyevinn",
         tenant: demoTenant,
         channelId: "eyevinn",
-        url: "https://testcontent.mrss.eyevinn.technology/eyevinn.mrss?preroll=true"
+        url: "https://testcontent.mrss.eyevinn.technology/eyevinn.mrss?preroll=true",
+        config: {
+          scheduleRetention: 3 // hours
+        }
       });
       const demoChannel = await this.channelsDb.getChannelById("eyevinn");
       if (!demoChannel) {
@@ -100,6 +103,9 @@ export class MRSSAutoScheduler {
     for(const feed of this.activeFeeds) {
       try {
         await this.populate(feed);
+        if (feed.config.scheduleRetention > 0) {
+          await this.cleanup(feed);
+        }
       } catch (error) {
         debug(error);
         console.error("Failed to populate schedule events for feed: " + feed.id);
@@ -125,7 +131,7 @@ export class MRSSAutoScheduler {
         if (asset) {
           const totalScheduleEventDuration = asset.duration;
           const nextEndTime = nextStartTime + totalScheduleEventDuration * 1000;
-          debug(`Adding schedule event: title=${asset.title}, start=${new Date(nextStartTime).toISOString()}, end=${new Date(nextEndTime).toISOString()}`);
+          console.log(`[${feed.channelId}]: Adding schedule event: title=${asset.title}, start=${new Date(nextStartTime).toISOString()}, end=${new Date(nextEndTime).toISOString()}`);
           scheduleEventsToAdd.push(new ScheduleEvent({
             id: uuidv4(),
             channelId: feed.channelId,
@@ -141,6 +147,13 @@ export class MRSSAutoScheduler {
       for (const scheduleEvent of scheduleEventsToAdd) {
         await this.scheduleEventsDb.add(scheduleEvent);
       }
+    }
+  }
+
+  private async cleanup(feed: MRSSFeed) {
+    const numEventsRemoved = await this.scheduleEventsDb.removeScheduleEvents(feed.channelId, { age: feed.config.scheduleRetention * 60 * 60 });
+    if (numEventsRemoved) {
+      console.log(`[${feed.channelId}]: Cleaned up and removed ${numEventsRemoved} schedule events for channel`);
     }
   }
 
