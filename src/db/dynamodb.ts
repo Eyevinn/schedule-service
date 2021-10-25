@@ -78,7 +78,7 @@ class DdbAdapter {
 
   scan(tableName: string, filter?: any) {
     return new Promise<any[]>((resolve, reject) => {
-      debug(`Scan ${tableName}`);
+      debug(`Scan ${tableName}: ${filter ? JSON.stringify(filter) : "ALL" }`);
       let params: DynamoDB.ScanInput = {
         TableName: tableName,
       };
@@ -284,9 +284,13 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
   }
 
   async remove(id: string) {
+    let query;
     try {
-      await this.db.delete({ TableName: this.schedulesTableName, Key: { "id": id } });
+      query = { TableName: this.schedulesTableName, Key: { "id": id } };
+      await this.db.delete(query);
     } catch (error) {
+      console.error(`Failed to delete schedule with ID ${id}`);
+      debug(query);
       debug(error);
       return false;
     }
@@ -299,7 +303,7 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
     let numEntriesRemoved = 0;
     try {
       const items = await this.db.scan(this.schedulesTableName, filter);
-      eventsToRemove = eventsToRemove.concat(items.map(item => item.id.S));
+      eventsToRemove = eventsToRemove.concat(items.map(item => item.id));
       if (eventsToRemove.length > 0) {
         for (const eventId of eventsToRemove) {
           try {
@@ -366,11 +370,12 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
 
     if (rangeOpts.age) {
       filter = {
-        ProjectExpression: "end_time, channelId",
-        FilterExpression: "end_time <= :val AND channelId = :chId",
+        ProjectExpression: "#e, channelId",
+        FilterExpression: "#e <= :end AND channelId = :chId",
+        ExpressionAttributeNames: { "#e": "end_time" },
         ExpressionAttributeValues: {
           ":chId": channelId,
-          ":val": dayjs().subtract(rangeOpts.age, "second").valueOf(),
+          ":end": dayjs().subtract(rangeOpts.age, "second").valueOf(),
         }
       };
     }
