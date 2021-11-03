@@ -279,8 +279,8 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
         duration: parseInt(item.duration, 10),
       }));
     });
-
-    return scheduleEvents;
+    const sortedScheduleEvents = scheduleEvents.sort((a, b) => a.start_time - b.start_time);
+    return sortedScheduleEvents;
   }
 
   async remove(id: string) {
