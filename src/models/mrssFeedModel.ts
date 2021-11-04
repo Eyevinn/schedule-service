@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import Debug from "debug";
 import { Type } from '@sinclair/typebox'
 
-import hlsDuration from "@eyevinn/hls-duration";
+import { hlsduration } from "@eyevinn/hls-duration";
 
 const debug = Debug("mrss-feed");
 
@@ -119,7 +119,7 @@ export class MRSSFeed {
       for (const asset of this.cache.assets) {
         if (asset.duration === -1) {
           // update duration
-          const duration = await hlsDuration(new URL(asset.url));
+          const duration = await hlsduration(new URL(asset.url));
           asset.duration = Math.ceil(duration);
           debug(`Updated asset duration for ${asset.title} to ${asset.duration}`);
         }
