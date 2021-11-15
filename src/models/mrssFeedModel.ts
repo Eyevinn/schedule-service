@@ -46,7 +46,7 @@ export class MRSSFeed {
     channelId: Type.String(),
     config: Type.Object({
       scheduleRetention: Type.Optional(Type.Number()),
-      liveEventFeqeuency: Type.Optional(Type.Number()),
+      liveEventFrequency: Type.Optional(Type.Number()),
       liveUrl: Type.Optional(Type.String()),
     }),
   });
