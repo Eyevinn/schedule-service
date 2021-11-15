@@ -9,7 +9,8 @@ import { hlsduration } from "@eyevinn/hls-duration";
 const debug = Debug("mrss-feed");
 
 interface MRSSFeedConfig {
-  scheduleRetention: number,
+  scheduleRetention?: number,
+  liveEventFrequency?: number,
 }
 
 export interface MRSSFeedAttr {
@@ -41,6 +42,10 @@ export class MRSSFeed {
     tenant: Type.String(),
     url: Type.String(),
     channelId: Type.String(),
+    config: Type.Object({
+      scheduleRetention: Type.Optional(Type.Number()),
+      liveEventFeqeuency: Type.Optional(Type.Number()),
+    }),
   });
 
   constructor(attrs: MRSSFeedAttr) {
