@@ -277,6 +277,8 @@ class DbScheduleEvents implements IDbScheduleEventsAdapter {
         end_time: parseInt(item.end_time, 10),
         url: item.url,
         duration: parseInt(item.duration, 10),
+        type: item.type,
+        liveUrl: item.liveUrl,
       }));
     });
     const sortedScheduleEvents = scheduleEvents.sort((a, b) => a.start_time - b.start_time);
