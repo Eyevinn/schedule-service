@@ -87,6 +87,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
         const scheduleEvents: ScheduleEvent[] = 
           await server.db.scheduleEvents
           .getScheduleEventsByChannelId(channelId, rangeOpts);
+        debug(scheduleEvents);
         return reply.code(200).send(scheduleEvents);
       } catch (error) {
         request.log.error(error);

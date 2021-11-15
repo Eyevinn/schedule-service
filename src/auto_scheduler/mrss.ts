@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 
 import { MRSSFeed } from "../models/mrssFeedModel";
-import { ScheduleEvent } from "../models/scheduleModel";
+import { ScheduleEvent, ScheduleEventType } from "../models/scheduleModel";
 import { Channel } from "../models/channelModel";
 import { IDbMRSSFeedsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
 
@@ -131,7 +131,7 @@ export class MRSSAutoScheduler {
         if (asset) {
           const totalScheduleEventDuration = asset.duration;
           const nextEndTime = nextStartTime + totalScheduleEventDuration * 1000;
-          console.log(`[${feed.channelId}]: Adding schedule event: title=${asset.title}, start=${new Date(nextStartTime).toISOString()}, end=${new Date(nextEndTime).toISOString()}`);
+          console.log(`[${feed.channelId}]: Adding schedule event (${ScheduleEventType.VOD}): title=${asset.title}, start=${new Date(nextStartTime).toISOString()}, end=${new Date(nextEndTime).toISOString()}`);
           scheduleEventsToAdd.push(new ScheduleEvent({
             id: uuidv4(),
             channelId: feed.channelId,
@@ -139,7 +139,8 @@ export class MRSSAutoScheduler {
             duration: totalScheduleEventDuration,
             start_time: nextStartTime,
             end_time: nextEndTime,
-            url: asset.url
+            url: asset.url,
+            type: ScheduleEventType.VOD,
           }));
           nextStartTime = nextEndTime;
         }

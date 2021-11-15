@@ -1,5 +1,10 @@
 import { Type } from '@sinclair/typebox'
 
+export enum ScheduleEventType {
+  VOD = "VOD",
+  LIVE = "LIVE"
+}
+
 export interface ScheduleEventAttrs {
   id: string;
   channelId: string;
@@ -10,6 +15,8 @@ export interface ScheduleEventAttrs {
   end?: string;
   url: string;
   duration: number;
+  type: ScheduleEventType;
+  liveUrl?: string;
 }
 
 export interface ScheduleRangeOptions {
@@ -32,6 +39,8 @@ export class ScheduleEvent {
     end: Type.String(),
     url: Type.String(),
     duration: Type.Number(),
+    type: Type.Enum(ScheduleEventType),
+    liveUrl: Type.Optional(Type.String()),
   });
 
   constructor(attrs: ScheduleEventAttrs) {
@@ -45,6 +54,8 @@ export class ScheduleEvent {
       end: new Date(attrs.end_time).toISOString(),
       url: attrs.url,
       duration: attrs.duration,
+      type: attrs.type,
+      liveUrl: attrs.liveUrl,
     };
   }
 
@@ -59,6 +70,8 @@ export class ScheduleEvent {
       end: new Date(this.attrs.end_time).toISOString(),
       url: this.attrs.url,
       duration: this.attrs.duration,
+      type: this.attrs.type,
+      liveUrl: this.attrs.liveUrl,
     }
   }
 
@@ -96,6 +109,14 @@ export class ScheduleEvent {
 
   get duration() {
     return this.attrs.duration;
+  }
+
+  get type() {
+    return this.attrs.type;
+  }
+
+  get liveUrl() {
+    return this.attrs.liveUrl;
   }
 
   set title(title: string) {
