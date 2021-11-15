@@ -9,8 +9,9 @@ import { hlsduration } from "@eyevinn/hls-duration";
 const debug = Debug("mrss-feed");
 
 interface MRSSFeedConfig {
-  scheduleRetention?: number,
-  liveEventFrequency?: number,
+  scheduleRetention?: number;
+  liveEventFrequency?: number;
+  liveUrl?: string;
 }
 
 export interface MRSSFeedAttr {
@@ -36,6 +37,7 @@ interface MRSSCache {
 export class MRSSFeed {
   private attrs: MRSSFeedAttr;
   private cache: MRSSCache;
+  private liveEventCountdown: number;
 
   public static schema = Type.Object({
     id: Type.String(),
@@ -45,6 +47,7 @@ export class MRSSFeed {
     config: Type.Object({
       scheduleRetention: Type.Optional(Type.Number()),
       liveEventFeqeuency: Type.Optional(Type.Number()),
+      liveUrl: Type.Optional(Type.String()),
     }),
   });
 
@@ -56,6 +59,7 @@ export class MRSSFeed {
       channelId: attrs.channelId,
       config: attrs.config,
     };
+    this.resetLiveEventCountdown();
   }
 
   get item(): MRSSFeedAttr {
@@ -86,6 +90,26 @@ export class MRSSFeed {
 
   get config() {
     return this.attrs.config;
+  }
+
+  get shouldInsertLive() {
+    return this.liveEventCountdown === 0;
+  }
+
+  get liveUrl() {
+    return this.attrs.config.liveUrl;
+  }
+
+  decreaseLiveEventCountdown() {
+    this.liveEventCountdown -= 1;
+  }
+
+  resetLiveEventCountdown() {
+    if (this.attrs.config.liveEventFrequency > 0) {
+      this.liveEventCountdown = this.attrs.config.liveEventFrequency;
+    } else {
+      this.liveEventCountdown = -1;
+    }    
   }
 
   getAssets() {
