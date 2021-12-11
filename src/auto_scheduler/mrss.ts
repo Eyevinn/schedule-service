@@ -99,6 +99,24 @@ export class MRSSAutoScheduler {
         console.error(err);
       }
     }, 5000);
+    const feedUpdateTimer = setInterval(async () => {
+      try {
+        debug("Update list of active feeds");
+        let feeds = await this.feedsDb.listAll();
+        // New feed added?
+        for (let feed of feeds) {
+          if (!(this.activeFeeds.find(f => f.id === feed.id))) {
+            debug(`New feed ${feed.id} found, adding to active list of feeds`);
+            this.activeFeeds.push(feed);
+          }
+        }
+        // Remove feeds that are not active
+        this.activeFeeds = this.activeFeeds.filter(active => feeds.find(f => f.id === active.id));
+        debug("Active feeds: " + this.activeFeeds.map(f => f.id).join(" "));
+      } catch (err) {
+        console.error(err);
+      }
+    }, 60 * 1000);
   }
 
   async tick() {
