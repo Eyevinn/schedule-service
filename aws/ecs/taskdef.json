@@ -1,0 +1,67 @@
+{
+    "family": "schedule-service",
+    "networkMode": "awsvpc",
+    "executionRoleArn": "arn:aws:iam::590877988961:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::590877988961:role/schedule-service-role",
+    "containerDefinitions": [
+      {
+        "name": "schedule-service",
+        "image": "590877988961.dkr.ecr.eu-north-1.amazonaws.com/eyevinn/schedule-service:latest",
+        "essential": true,
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/schedule-service",
+            "awslogs-region": "eu-north-1",
+            "awslogs-stream-prefix": "ecs"
+          }
+        },
+        "portMappings": [
+          {
+            "hostPort": 8080,
+            "protocol": "tcp",
+            "containerPort": 8080
+          }
+        ],
+        "environment": [
+          {
+            "name": "DB",
+            "value": "dynamodb://aws/eu-north-1"
+          },
+          {
+            "name": "DB_TABLE_PREFIX",
+            "value": "sto"
+          },
+          {
+            "name": "DEBUG",
+            "value": "mrss-*,db-*,api-*"
+          },
+          {
+            "name": "DEMO_LIVE_URL",
+            "value": "https://d2fz24s2fts31b.cloudfront.net/out/v1/6484d7c664924b77893f9b4f63080e5d/manifest.m3u8"
+          },
+          {
+            "name": "DEMO_TENANT",
+            "value": "schedule.vc.eyevinn.technology"
+          },
+          {
+            "name": "IF",
+            "value": "0.0.0.0"
+          },
+          {
+            "name": "PORT",
+            "value": "8080"
+          }
+        ]
+      }
+    ],
+    "requiresCompatibilities": [
+      "FARGATE"
+    ],
+    "runtimePlatform": {
+      "operatingSystemFamily": "LINUX",
+      "cpuArchitecture": null
+    },
+    "cpu": "256",
+    "memory": "512"
+}
