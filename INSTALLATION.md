@@ -11,12 +11,13 @@ The services uses AWS DynamoDB as database store.
 To run the latest version of the Schedule Service with a local Dynamo DB instance.
 
 ```
-docker run -d -p 5000:8000 amazon/dynamodb-local
+docker run -d -p 6000:8000 amazon/dynamodb-local
 ```
 
 ```
 docker run -d -p 8080:8080 \
-  -e DB=dynamodb://localhost:5000/eu-north-1 \
+  -e DB=dynamodb://host.docker.internal:6000/eu-north-1 \
+  -e AWS_ACCESS_KEY_ID=null -e AWS_SECRET_ACCESS_KEY=null \
   eyevinntechnology/schedule-service
 ```
 
@@ -30,7 +31,7 @@ The following environment variables can be set:
 - `IF`: Which IP to bind the service to.
 - `DB`: DynamoDB endpoint.
 - `DB_TABLE_PREFIX`: Dynamo DB table prefix.
-- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`: AWS credentials when running
+- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`: AWS credentials when using Dynamo DB in AWS
 
 ## Support
 
