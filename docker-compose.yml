@@ -8,7 +8,7 @@ services:
     depends_on:
       - ddb
     build: .
-    image: schedule-service:local
+    image: eyevinntechnology/schedule-service
     environment:
       - PORT=8080
       - IF=0.0.0.0

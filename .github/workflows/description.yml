@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-    - README.md
+    - INSTALLATION.md
     - .github/workflows/description.yml
 
 jobs:
@@ -21,3 +21,4 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: eyevinntechnology/schedule-service
         short-description: ${{ github.event.repository.description }}
+        readme-filepath: ./INSTALLATION.md
