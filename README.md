@@ -41,6 +41,7 @@ Once up and running the service is by default available on port `8080` unless ot
 | -------- | ------ | ----------- |
 | `/api/docs/` | GET | API documentation (Swagger) |
 | `/api/v1/channels`| GET | List available channels |
+| `/api/v1/channels`| POST | Create a new channel |
 | `/api/v1/channels/{channelId}`| DELETE | Remove a channel (TBD) |
 | `/api/v1/channels/{channelId}/schedule`| GET | Obtain the schedule for a channel |
 
@@ -87,7 +88,7 @@ The MRSS auto scheduler automatically adds new schedule events on a channel base
 | ENDPOINT | METHOD | DESCRIPTION |
 | -------- | ------ | ----------- |
 | `/api/v1/mrss` | GET | List of running MRSS schedulers |
-| `/api/v1/mrss` | POST | Add a new MRSS scheduler (TBD) |
+| `/api/v1/mrss` | POST | Add a new MRSS scheduler (channel must exist) |
 | `/api/v1/mrss` | DELETE | Remove an MRSS scheduler but keeping the channel |
 
 ### Example
