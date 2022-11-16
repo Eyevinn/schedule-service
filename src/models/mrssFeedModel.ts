@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import xmlparser from "fast-xml-parser";
 import dayjs from "dayjs";
 import Debug from "debug";
-import { Type } from '@sinclair/typebox'
+import { Type, Static } from '@sinclair/typebox'
 
 import { hlsduration } from "@eyevinn/hls-duration";
 
@@ -34,22 +34,25 @@ interface MRSSCache {
   assets: MRSSAsset[];
 }
 
+export const MRSSFeedSchema = Type.Object({
+  id: Type.String(),
+  tenant: Type.String(),
+  url: Type.String(),
+  channelId: Type.String(),
+  config: Type.Object({
+    scheduleRetention: Type.Optional(Type.Number()),
+    liveEventFrequency: Type.Optional(Type.Number()),
+    liveUrl: Type.Optional(Type.String()),
+  })
+});
+export type MRSSFeedType = Static<typeof MRSSFeedSchema>;
+
 export class MRSSFeed {
   private attrs: MRSSFeedAttr;
   private cache: MRSSCache;
   private liveEventCountdown: number;
 
-  public static schema = Type.Object({
-    id: Type.String(),
-    tenant: Type.String(),
-    url: Type.String(),
-    channelId: Type.String(),
-    config: Type.Object({
-      scheduleRetention: Type.Optional(Type.Number()),
-      liveEventFrequency: Type.Optional(Type.Number()),
-      liveUrl: Type.Optional(Type.String()),
-    }),
-  });
+  public static schema = MRSSFeedSchema;
 
   constructor(attrs: MRSSFeedAttr) {
     this.attrs = {

@@ -4,17 +4,49 @@ import Debug from "debug";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 
-import { MRSSFeed } from "../models/mrssFeedModel";
+import { MRSSFeed, MRSSFeedType } from "../models/mrssFeedModel";
 import { ScheduleEvent, ScheduleEventType } from "../models/scheduleModel";
 import { Channel } from "../models/channelModel";
 import { IDbMRSSFeedsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
+import { Type } from "@sinclair/typebox";
 
 const debug = Debug("mrss-auto-scheduler");
 
 export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyInstance, options: FastifyPluginOptions) => {
-  const { prefix } = options;
+  const { prefix } = options;
 
   server.register(async (server: FastifyInstance) => {
+    server.post<{ Body: MRSSFeedType, Reply: MRSSFeedType|string }>(
+      "/mrss", 
+      {
+        schema: {
+          body: MRSSFeed.schema,
+          response: {
+            200: MRSSFeed.schema,
+            400: Type.String(),
+            500: Type.String(),
+          }
+        }
+      }, async (request, reply) => {
+        const mrssFeedBody = request.body;
+        const tenant = request.headers["host"];
+        try {
+          if (mrssFeedBody.tenant !== tenant) {
+            return reply.code(400).send(`Expected tenant to be ${tenant}`);
+          }
+          const channel = await server.db.channels.getChannelById(mrssFeedBody.channelId);
+          if (!channel) {
+            return reply.code(400).send(`No channel with ID ${mrssFeedBody.channelId} was found. Must be created first.`);
+          }
+          const mrssFeed = new MRSSFeed(mrssFeedBody);
+          await server.db.mrssFeeds.add(mrssFeed);
+          return reply.code(200).send(mrssFeed.item);
+        } catch (error) {
+          request.log.error(error);
+          return reply.code(500).send(error);
+        }
+      });
+
     server.get("/mrss", {
       schema: {
         response: {
@@ -31,12 +63,13 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
           const feeds: MRSSFeed[] = await server.db.mrssFeeds.listAll();
           return reply.code(200).send(feeds);
         } else {
+          request.log.info(`Listing MRSS feeds for tenant '${tenant}'`);
           const feeds: MRSSFeed[] = await server.db.mrssFeeds.list(tenant);
           return reply.code(200).send(feeds);
         }
       } catch (error) {
         request.log.error(error);
-        return reply.send(500);
+        return reply.code(500).send(error);
       }
     });  
   }, { prefix });
