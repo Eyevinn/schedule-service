@@ -19,7 +19,7 @@ interface IAPIScheduleQuery {
 }
 
 const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options: FastifyPluginOptions) => {
-  const { prefix } = options;
+  const { prefix } = options;
 
   fastify.register(async (server: FastifyInstance) => {
     server.get("/channels", {
@@ -36,6 +36,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
           const channels: Channel[] = await server.db.channels.listAll();
           return reply.code(200).send(channels);
         } else {
+          request.log.info(`Listing channels for tenant '${tenant}'`);
           const channels: Channel[] = await server.db.channels.list(tenant);
           return reply.code(200).send(channels);
         }
