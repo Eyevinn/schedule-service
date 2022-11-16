@@ -3,8 +3,9 @@ import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fasti
 import fp from "fastify-plugin";
 import dayjs from "dayjs";
 
-import { Channel } from "../models/channelModel";
+import { Channel, ChannelType } from "../models/channelModel";
 import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
+import { Type } from "@sinclair/typebox";
 
 const debug = Debug("api-channels");
 
@@ -22,11 +23,11 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
   const { prefix } = options;
 
   fastify.register(async (server: FastifyInstance) => {
-    server.get("/channels", {
+    server.get<{ Reply: ChannelType[] }>("/channels", {
       schema: {
         description: "Get a list of all available channels (tenant specific)",
         response: {
-          200: { type: "array", items: Channel.schema }
+          200: Type.Array(Channel.schema)
         }
       }
     }, async (request, reply) => {
@@ -42,9 +43,40 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
         }
       } catch (error) {
         request.log.error(error);
-        return reply.send(500);
+        return reply.code(500);
       }
     });
+
+    server.post<{ Body: ChannelType, Reply: ChannelType|string }>(
+      "/channels", 
+      {
+        schema: {
+          description: "Add a new channel (tenant specific)",
+          body: Channel.schema,
+          response: {
+            200: Channel.schema,
+            400: Type.String(),
+            500: Type.String()
+          }
+        } 
+      }, async (request, reply) => {
+        const tenant = request.headers["host"];
+        try {
+          if (request.body.tenant !== tenant) {
+            return reply.code(400).send(`Expected tenant to be ${tenant}`);
+          }
+          let channel = await server.db.channels.getChannelById(request.body.id);
+          if (channel) {
+            return reply.code(400).send(`Channel with ID ${request.body.id} already exists`);
+          }
+          channel = new Channel(request.body);
+          await server.db.channels.add(channel);
+          return reply.code(200).send(channel.item);
+        } catch (error) {
+          request.log.error(error);
+          return reply.code(500).send(error);
+        }
+      });
     
     server.get<{
       Params: IAPIScheduleParams, Querystring: IAPIScheduleQuery
@@ -91,7 +123,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
         return reply.code(200).send(scheduleEvents);
       } catch (error) {
         request.log.error(error);
-        return reply.send(500);
+        return reply.code(500);
       }
     });
   }, { prefix });

@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox'
+import { Type, Static } from '@sinclair/typebox'
 
 export interface ChannelAttrs {
   id: string;
@@ -6,14 +6,17 @@ export interface ChannelAttrs {
   title: string;
 }
 
+export const ChannelSchema = Type.Object({
+  id: Type.String(),
+  tenant: Type.String(),
+  title: Type.String(),
+});
+export type ChannelType = Static<typeof ChannelSchema>;
+
 export class Channel {
   private attrs: ChannelAttrs;
 
-  public static schema = Type.Object({
-    id: Type.String(),
-    tenant: Type.String(),
-    title: Type.String(),
-  });
+  public static schema = ChannelSchema;
 
   constructor(attrs: ChannelAttrs) {
     this.attrs = {
