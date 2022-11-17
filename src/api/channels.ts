@@ -106,7 +106,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
           await server.db.mrssFeeds.remove(feed.id);
         }
         await server.db.channels.remove(channel.id);
-        reply.code(204).send("removed");
+        reply.code(204);
       } catch (error) {
         request.log.error(error);
         return reply.code(500);
