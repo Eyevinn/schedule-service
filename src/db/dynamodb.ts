@@ -426,6 +426,26 @@ class DbMRSSFeeds implements IDbMRSSFeedsAdapter {
     }
   }
 
+  async getMRSSFeedById(id: string) {
+    try {
+      const data = await this.db.get(this.mrssFeedsTableName, { "id": id });
+      if (data.Item) {
+        return new MRSSFeed({ 
+          id: data.Item.id, 
+          tenant: data.Item.tenant, 
+          url: data.Item.url,
+          channelId: data.Item.channelId,
+          config: data.Item.config
+        });
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
   async getMRSSFeedsByChannelId(channelId: string) {
     try {
       return await (await this.listAll()).filter(feed => feed.channelId === channelId);

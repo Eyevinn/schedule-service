@@ -12,6 +12,10 @@ import { Type } from "@sinclair/typebox";
 
 const debug = Debug("mrss-auto-scheduler");
 
+interface IAPIMRSSFeedParams {
+  feedId: string;
+}
+
 export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyInstance, options: FastifyPluginOptions) => {
   const { prefix } = options;
 
@@ -71,7 +75,34 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
         request.log.error(error);
         return reply.code(500).send(error);
       }
-    });  
+    });
+    
+    server.delete<{
+      Params: IAPIMRSSFeedParams, Reply: string
+    }>("/mrss/:feedId", {
+      schema: {
+        description: "Remove an MRSS auto-scheduler",
+        params: {
+          feedId: Type.String({ description: "The ID for the MRSS auto-scheduler" })
+        },
+        response: {
+          204: Type.String(),
+          400: Type.String()
+        }
+      }
+    }, async (request, reply) => {
+      try {
+        const feed = await server.db.mrssFeeds.getMRSSFeedById(request.params.feedId);
+        if (!feed) {
+          return reply.code(400).send(`MRSS auto-scheduler with ID ${request.params.feedId} does not exist`);
+        }
+        await server.db.mrssFeeds.remove(feed.id);
+        reply.code(204);
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(500);
+      }
+    });
   }, { prefix });
 };
 
