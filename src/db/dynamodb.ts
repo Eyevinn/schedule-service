@@ -426,9 +426,22 @@ class DbMRSSFeeds implements IDbMRSSFeedsAdapter {
     }
   }
 
+  async getMRSSFeedsByChannelId(channelId: string) {
+    try {
+      return await (await this.listAll()).filter(feed => feed.channelId === channelId);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+
   async add(mrssFeed: MRSSFeed) {
     await this.db.put(this.mrssFeedsTableName, mrssFeed.item);
     return mrssFeed;
+  }
+
+  async remove(id: string) {
+    await this.db.delete({ TableName: this.mrssFeedsTableName, Key: { "id": id } });
   }
 }
 

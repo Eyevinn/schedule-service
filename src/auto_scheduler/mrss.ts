@@ -4,7 +4,7 @@ import Debug from "debug";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 
-import { MRSSFeed, MRSSFeedType } from "../models/mrssFeedModel";
+import { MRSSFeed, TMRSSFeed } from "../models/mrssFeedModel";
 import { ScheduleEvent, ScheduleEventType } from "../models/scheduleModel";
 import { Channel } from "../models/channelModel";
 import { IDbMRSSFeedsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
@@ -16,7 +16,7 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
   const { prefix } = options;
 
   server.register(async (server: FastifyInstance) => {
-    server.post<{ Body: MRSSFeedType, Reply: MRSSFeedType|string }>(
+    server.post<{ Body: TMRSSFeed, Reply: TMRSSFeed|string }>(
       "/mrss", 
       {
         schema: {

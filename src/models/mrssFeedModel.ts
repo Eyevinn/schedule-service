@@ -45,7 +45,7 @@ export const MRSSFeedSchema = Type.Object({
     liveUrl: Type.Optional(Type.String()),
   })
 });
-export type MRSSFeedType = Static<typeof MRSSFeedSchema>;
+export type TMRSSFeed = Static<typeof MRSSFeedSchema>;
 
 export class MRSSFeed {
   private attrs: MRSSFeedAttr;

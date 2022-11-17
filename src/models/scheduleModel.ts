@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox'
+import { Type, Static } from '@sinclair/typebox'
 
 export enum ScheduleEventType {
   VOD = "VOD",
@@ -26,22 +26,26 @@ export interface ScheduleRangeOptions {
   age?: number;
 }
 
+export const ScheduleEventSchema = Type.Object({
+  id: Type.String(),
+  channelId: Type.String(),
+  title: Type.String(),
+  start_time: Type.Number(),
+  end_time: Type.Number(),
+  start: Type.String(),
+  end: Type.String(),
+  url: Type.String(),
+  duration: Type.Number(),
+  type: Type.Enum(ScheduleEventType),
+  liveUrl: Type.Optional(Type.String()),
+});
+
+export type TScheduleEvent = Static<typeof ScheduleEventSchema>;
+
 export class ScheduleEvent {
   private attrs: ScheduleEventAttrs;
 
-  public static schema = Type.Object({
-    id: Type.String(),
-    channelId: Type.String(),
-    title: Type.String(),
-    start_time: Type.Number(),
-    end_time: Type.Number(),
-    start: Type.String(),
-    end: Type.String(),
-    url: Type.String(),
-    duration: Type.Number(),
-    type: Type.Enum(ScheduleEventType),
-    liveUrl: Type.Optional(Type.String()),
-  });
+  public static schema = ScheduleEventSchema;
 
   constructor(attrs: ScheduleEventAttrs) {
     this.attrs = {

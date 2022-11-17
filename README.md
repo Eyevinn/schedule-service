@@ -42,7 +42,7 @@ Once up and running the service is by default available on port `8080` unless ot
 | `/api/docs/` | GET | API documentation (Swagger) |
 | `/api/v1/channels`| GET | List available channels |
 | `/api/v1/channels`| POST | Create a new channel |
-| `/api/v1/channels/{channelId}`| DELETE | Remove a channel (TBD) |
+| `/api/v1/channels/{channelId}`| DELETE | Remove a channel |
 | `/api/v1/channels/{channelId}/schedule`| GET | Obtain the schedule for a channel |
 
 ## Example
