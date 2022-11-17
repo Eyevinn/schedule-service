@@ -11,7 +11,7 @@ export const ChannelSchema = Type.Object({
   tenant: Type.String(),
   title: Type.String(),
 });
-export type ChannelType = Static<typeof ChannelSchema>;
+export type TChannel = Static<typeof ChannelSchema>;
 
 export class Channel {
   private attrs: ChannelAttrs;

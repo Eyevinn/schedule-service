@@ -4,7 +4,7 @@ import Debug from "debug";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 
-import { MRSSFeed, MRSSFeedType } from "../models/mrssFeedModel";
+import { MRSSFeed, TMRSSFeed } from "../models/mrssFeedModel";
 import { ScheduleEvent, ScheduleEventType } from "../models/scheduleModel";
 import { Channel } from "../models/channelModel";
 import { IDbMRSSFeedsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
@@ -12,11 +12,15 @@ import { Type } from "@sinclair/typebox";
 
 const debug = Debug("mrss-auto-scheduler");
 
+interface IAPIMRSSFeedParams {
+  feedId: string;
+}
+
 export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyInstance, options: FastifyPluginOptions) => {
   const { prefix } = options;
 
   server.register(async (server: FastifyInstance) => {
-    server.post<{ Body: MRSSFeedType, Reply: MRSSFeedType|string }>(
+    server.post<{ Body: TMRSSFeed, Reply: TMRSSFeed|string }>(
       "/mrss", 
       {
         schema: {
@@ -71,7 +75,34 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
         request.log.error(error);
         return reply.code(500).send(error);
       }
-    });  
+    });
+    
+    server.delete<{
+      Params: IAPIMRSSFeedParams, Reply: string
+    }>("/mrss/:feedId", {
+      schema: {
+        description: "Remove an MRSS auto-scheduler",
+        params: {
+          feedId: Type.String({ description: "The ID for the MRSS auto-scheduler" })
+        },
+        response: {
+          204: Type.String(),
+          400: Type.String()
+        }
+      }
+    }, async (request, reply) => {
+      try {
+        const feed = await server.db.mrssFeeds.getMRSSFeedById(request.params.feedId);
+        if (!feed) {
+          return reply.code(400).send(`MRSS auto-scheduler with ID ${request.params.feedId} does not exist`);
+        }
+        await server.db.mrssFeeds.remove(feed.id);
+        reply.code(204);
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(500);
+      }
+    });
   }, { prefix });
 };
 

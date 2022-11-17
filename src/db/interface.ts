@@ -31,5 +31,8 @@ export interface IDbMRSSFeedsAdapter {
   init: () => Promise<void>;
   list: (tenant: string) => Promise<MRSSFeed[]>;
   listAll: () => Promise<MRSSFeed[]>;
+  getMRSSFeedById: (id: string) => Promise<MRSSFeed>;
+  getMRSSFeedsByChannelId: (channelId: string) => Promise<MRSSFeed[]>;
   add: (mrssFeed: MRSSFeed) => Promise<MRSSFeed>;
+  remove: (id: string) => Promise<void>;
 }

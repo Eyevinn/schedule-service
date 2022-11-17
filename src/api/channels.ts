@@ -3,11 +3,15 @@ import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fasti
 import fp from "fastify-plugin";
 import dayjs from "dayjs";
 
-import { Channel, ChannelType } from "../models/channelModel";
-import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
+import { Channel, TChannel } from "../models/channelModel";
+import { ScheduleEvent, TScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
 import { Type } from "@sinclair/typebox";
 
 const debug = Debug("api-channels");
+
+interface IAPIChannelParams {
+  channelId: string;
+}
 
 interface IAPIScheduleParams {
   channelId: string;
@@ -23,7 +27,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
   const { prefix } = options;
 
   fastify.register(async (server: FastifyInstance) => {
-    server.get<{ Reply: ChannelType[] }>("/channels", {
+    server.get<{ Reply: TChannel[] }>("/channels", {
       schema: {
         description: "Get a list of all available channels (tenant specific)",
         response: {
@@ -47,7 +51,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
       }
     });
 
-    server.post<{ Body: ChannelType, Reply: ChannelType|string }>(
+    server.post<{ Body: TChannel, Reply: TChannel|string }>(
       "/channels", 
       {
         schema: {
@@ -77,17 +81,45 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
           return reply.code(500).send(error);
         }
       });
-    
+
+    server.delete<{
+      Params: IAPIChannelParams, Reply: string
+    }>("/channels/:channelId", {
+      schema: {
+        description: "Remove channel and any associated auto-scheduler with this channel",
+        params: {
+          channelId: Type.String({ description: "The ID for the channel" })
+        },
+        response: {
+          204: Type.String(),
+          400: Type.String()
+        }
+      }
+    }, async (request, reply) => {
+      try {
+        const channel = await server.db.channels.getChannelById(request.params.channelId);
+        if (!channel) {
+          return reply.code(400).send(`Channel with ID ${request.params.channelId} does not exist`);
+        }
+        const mrssFeeds = await server.db.mrssFeeds.getMRSSFeedsByChannelId(channel.id);
+        for (const feed of mrssFeeds) {
+          await server.db.mrssFeeds.remove(feed.id);
+        }
+        await server.db.channels.remove(channel.id);
+        reply.code(204);
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(500);
+      }
+    });
+
     server.get<{
-      Params: IAPIScheduleParams, Querystring: IAPIScheduleQuery
+      Params: IAPIScheduleParams, Querystring: IAPIScheduleQuery, Reply: TScheduleEvent[]
     }>("/channels/:channelId/schedule", {
       schema: {
         description: "Get the schedule for a channel",
         params: {
-          channelId: {
-            type: "string",
-            description: "The ID for the channel",
-          }
+          channelId: Type.String({ description: "The ID for the channel" })
         },
         querystring: {
           type: "object",
@@ -98,7 +130,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
           }
         },
         response: {
-          200: { type: "array", items: ScheduleEvent.schema }
+          200: Type.Array(ScheduleEvent.schema)
         }
       }
     }, async (request, reply) => {
