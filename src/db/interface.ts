@@ -1,12 +1,14 @@
 import { Channel } from "../models/channelModel";
 import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
 import { MRSSFeed } from "../models/mrssFeedModel";
+import { Playlist } from "../models/playlistModel";
 
 export interface IDbPluginOptions {
   uri: string;
   channelsTableName?: string;
   schedulesTableName?: string;
   mrssFeedsTableName?: string;
+  playlistsTableName?: string;
 }
 
 export interface IDbChannelsAdapter {
@@ -34,5 +36,14 @@ export interface IDbMRSSFeedsAdapter {
   getMRSSFeedById: (id: string) => Promise<MRSSFeed>;
   getMRSSFeedsByChannelId: (channelId: string) => Promise<MRSSFeed[]>;
   add: (mrssFeed: MRSSFeed) => Promise<MRSSFeed>;
+  remove: (id: string) => Promise<void>;
+}
+
+export interface IDbPlaylistsAdapter {
+  init: () => Promise<void>;
+  list: (tenant: string) => Promise<Playlist[]>;
+  listAll: () => Promise<Playlist[]>;
+  getPlaylistById: (id: string) => Promise<Playlist>;
+  add: (playlist: Playlist) => Promise<Playlist>;
   remove: (id: string) => Promise<void>;
 }

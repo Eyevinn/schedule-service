@@ -110,6 +110,20 @@ Response:
 ]
 ```
 
+## Playlist Auto Scheduler
+
+The Playlist auto scheduler automatically adds new schedule events on a channel based on the contents
+of a playlist text file. The playlist text file contains a list of URLs to HLS VODs where each URL
+is on a single line. The content is added in the order of the playlist and when end of the playlist
+is reached it starts from the top again.
+
+| ENDPOINT | METHOD | DESCRIPTION |
+| -------- | ------ | ----------- |
+| `/api/v1/playlist` | GET | List of running Playlist schedulers |
+| `/api/v1/playlist` | POST | Add a new Playlist scheduler (channel must exist) |
+| `/api/v1/playlist` | DELETE | Remove an Playlist scheduler but keeping the channel |
+
+
 ## Support
 
 Join our [community on Slack](http://slack.streamingtech.se) where you can post any questions regarding any of our open source projects. Eyevinn's consulting business can also offer you:

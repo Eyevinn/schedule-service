@@ -3,10 +3,17 @@ import fp from "fastify-plugin";
 import { DynamoDB, config } from "aws-sdk";
 import dayjs from "dayjs";
 import Debug from "debug";
-import { IDbPluginOptions, IDbChannelsAdapter, IDbScheduleEventsAdapter, IDbMRSSFeedsAdapter } from "./interface";
+import { 
+  IDbPluginOptions, 
+  IDbChannelsAdapter, 
+  IDbScheduleEventsAdapter, 
+  IDbMRSSFeedsAdapter,
+  IDbPlaylistsAdapter,
+} from "./interface";
 import { Channel } from "../models/channelModel";
 import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
 import { MRSSFeed } from "../models/mrssFeedModel";
+import { Playlist } from "../models/playlistModel";
 
 const debug = Debug("db-dynamodb");
 
@@ -466,6 +473,75 @@ class DbMRSSFeeds implements IDbMRSSFeedsAdapter {
   }
 }
 
+class DbPlaylists implements IDbPlaylistsAdapter {
+  private db: DdbAdapter;
+  private playlistsTableName: string;
+
+  constructor(db: DdbAdapter, playlistsTableName: string) {
+    this.db = db;
+    this.playlistsTableName = playlistsTableName;
+  }
+
+  async init() {
+    await this.db.createTableIfNotExists(this.playlistsTableName, {
+      KeySchema: [ { AttributeName: "id", KeyType: "HASH" }],
+      AttributeDefinitions: [ { AttributeName: "id", AttributeType: "S" }]
+    });
+  }
+
+  async list(tenant: string) {
+    try {
+      return await (await this.listAll()).filter(pl => pl.tenant === tenant);
+    } catch(error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  async listAll() {
+    try {
+      const items = await this.db.scan(this.playlistsTableName);
+      return items.map(item => new Playlist({
+        id: item.id,
+        tenant: item.tenant,
+        url: item.url,
+        channelId: item.channelId,
+      }));
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  async getPlaylistById(id: string) {
+    try {
+      const data = await this.db.get(this.playlistsTableName, { "id": id });
+      if (data.Item) {
+        return new Playlist({ 
+          id: data.Item.id, 
+          tenant: data.Item.tenant, 
+          url: data.Item.url,
+          channelId: data.Item.channelId,
+        });
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  async add(playlist: Playlist) {
+    await this.db.put(this.playlistsTableName, playlist.item);
+    return playlist;
+  }
+
+  async remove(id: string) {
+    await this.db.delete({ TableName: this.playlistsTableName, Key: { "id": id } });
+  }
+}
+
 const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
   fastify: FastifyInstance,
   options: FastifyPluginOptions
@@ -492,8 +568,14 @@ const ConnectDB: FastifyPluginAsync<IDbPluginOptions> = async (
     await dbScheduleEvents.init();
     const dbMRSSFeeds = new DbMRSSFeeds(dbAdapter, options.mrssFeedsTableName || "mrssFeeds");
     await dbMRSSFeeds.init();
+    const dbPlaylists = new DbPlaylists(dbAdapter, options.playlistsTableName || "playlists");
+    await dbPlaylists.init();
 
-    fastify.decorate("db", { channels: dbChannels, scheduleEvents: dbScheduleEvents, mrssFeeds: dbMRSSFeeds });
+    fastify.decorate("db", { channels: dbChannels, 
+      scheduleEvents: dbScheduleEvents, 
+      mrssFeeds: dbMRSSFeeds, 
+      playlists: dbPlaylists 
+    });
   } catch (error) {
     console.error(error);
   }
