@@ -66,8 +66,10 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
       }, async (request, reply) => {
         const tenant = request.headers["host"];
         try {
-          if (request.body.tenant !== tenant) {
-            return reply.code(400).send(`Expected tenant to be ${tenant}`);
+          if (!tenant.match(/^localhost/)) {
+            if (request.body.tenant !== tenant) {
+              return reply.code(400).send(`Expected tenant to be ${tenant}`);
+            }
           }
           let channel = await server.db.channels.getChannelById(request.body.id);
           if (channel) {

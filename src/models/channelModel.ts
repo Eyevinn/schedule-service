@@ -1,15 +1,27 @@
 import { Type, Static } from '@sinclair/typebox'
 
+interface IChannelAudioTrack {
+  language: string;
+  name: string;
+  default: boolean;
+}
+
 export interface ChannelAttrs {
   id: string;
   tenant: string;
   title: string;
+  audioTracks?: IChannelAudioTrack[];
 }
 
 export const ChannelSchema = Type.Object({
   id: Type.String(),
   tenant: Type.String(),
   title: Type.String(),
+  audioTracks: Type.Optional(Type.Array(Type.Object({
+    language: Type.String(),
+    name: Type.String(),
+    default: Type.Boolean()
+  })))
 });
 export type TChannel = Static<typeof ChannelSchema>;
 
@@ -23,6 +35,7 @@ export class Channel {
       id: attrs.id,
       tenant: attrs.tenant,
       title: attrs.title,
+      audioTracks: attrs.audioTracks,
     };
   }
 
@@ -31,6 +44,7 @@ export class Channel {
       id: this.attrs.id,
       tenant: this.attrs.tenant,
       title: this.attrs.title,
+      audioTracks: this.attrs.audioTracks,
     };
   }
 
@@ -44,5 +58,9 @@ export class Channel {
 
   get title() {
     return this.attrs.title;
+  }
+
+  get audioTracks() {
+    return this.attrs.audioTracks;
   }
 }

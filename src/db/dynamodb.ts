@@ -197,6 +197,7 @@ class DbChannels implements IDbChannelsAdapter {
           id: item.id,
           tenant: item.tenant,
           title: item.title,
+          audioTracks: item.audioTracks,
         }));
       });
       return channels;
