@@ -16,13 +16,13 @@ npm run build
 Start a local instance of DynamoDB with this command:
 
 ```
-docker run --rm -p 5000:8000 amazon/dynamodb-local
+docker run --rm -p 5050:8000 amazon/dynamodb-local
 ```
 
 Start the schedule service
 
 ```
-DB=dynamodb://localhost:5000/eu-north-1 npm start
+DB=dynamodb://localhost:5050/eu-north-1 npm start
 ```
 
 ## Docker
