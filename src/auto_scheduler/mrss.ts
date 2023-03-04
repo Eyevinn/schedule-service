@@ -35,8 +35,10 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
         const mrssFeedBody = request.body;
         const tenant = request.headers["host"];
         try {
-          if (mrssFeedBody.tenant !== tenant) {
-            return reply.code(400).send(`Expected tenant to be ${tenant}`);
+          if (!tenant.match(/^localhost/)) {
+            if (mrssFeedBody.tenant !== tenant) {
+              return reply.code(400).send(`Expected tenant to be ${tenant}`);
+            }
           }
           const channel = await server.db.channels.getChannelById(mrssFeedBody.channelId);
           if (!channel) {
@@ -136,7 +138,7 @@ export class MRSSAutoScheduler {
         config: {
           scheduleRetention: 3, // hours
           liveEventFrequency: 3,
-          liveUrl: process.env.DEMO_LIVE_URL || "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",
+          liveUrl: process.env.DEMO_LIVE_URL || "https://d2fz24s2fts31b.cloudfront.net/out/v1/6484d7c664924b77893f9b4f63080e5d/manifest.m3u8",
         }
       });
       const demoChannel = await this.channelsDb.getChannelById("eyevinn");
