@@ -25,6 +25,17 @@ Start the schedule service
 DB=dynamodb://localhost:5050/eu-north-1 npm start
 ```
 
+Generate channels using the Eyevinn FAST Engine container.
+
+```
+docker run --rm -p 8000:8000 -p 8001:8001 \
+  -e FAST_PLUGIN=ScheduleService \
+  -e SCHEDULE_SERVICE_API_URL=http://host.docker.internal:8080/api/v1 \
+  eyevinntechnology/fast-engine
+```
+
+Then you have the channels available at `http://localhost:8000/channels/<channelId>/master.m3u8` or address your browser to the multiview page at `http://localhost:8001/`
+
 ## Docker
 
 Run schedule service and dynamodb container locally
@@ -87,9 +98,9 @@ The MRSS auto scheduler automatically adds new schedule events on a channel base
 
 | ENDPOINT | METHOD | DESCRIPTION |
 | -------- | ------ | ----------- |
-| `/api/v1/mrss` | GET | List of running MRSS schedulers |
-| `/api/v1/mrss` | POST | Add a new MRSS scheduler (channel must exist) |
-| `/api/v1/mrss` | DELETE | Remove an MRSS scheduler but keeping the channel |
+| `/api/v1/auto/mrss` | GET | List of running MRSS schedulers |
+| `/api/v1/auto/mrss` | POST | Add a new MRSS scheduler (channel must exist) |
+| `/api/v1/auto/mrss` | DELETE | Remove an MRSS scheduler but keeping the channel |
 
 ### Example
 
@@ -109,6 +120,20 @@ Response:
   }
 ]
 ```
+
+## Playlist Auto Scheduler
+
+The Playlist auto scheduler automatically adds new schedule events on a channel based on the contents
+of a playlist text file. The playlist text file contains a list of URLs to HLS VODs where each URL
+is on a single line. The content is added in the order of the playlist and when end of the playlist
+is reached it starts from the top again.
+
+| ENDPOINT | METHOD | DESCRIPTION |
+| -------- | ------ | ----------- |
+| `/api/v1/auto/playlist` | GET | List of running Playlist schedulers |
+| `/api/v1/auto/playlist` | POST | Add a new Playlist scheduler (channel must exist) |
+| `/api/v1/auto/playlist` | DELETE | Remove an Playlist scheduler but keeping the channel |
+
 
 ## Support
 

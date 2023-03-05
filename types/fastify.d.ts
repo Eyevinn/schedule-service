@@ -1,4 +1,4 @@
-import { IDbChannelsAdapter, IDbScheduleEventsAdapter, IDbMRSSFeedsAdapter } from "../src/db/interface";
+import { IDbChannelsAdapter, IDbScheduleEventsAdapter, IDbMRSSFeedsAdapter, IDbPlaylistsAdapter } from "../src/db/interface";
 
 // Declaration merging
 declare module 'fastify' {
@@ -7,6 +7,7 @@ declare module 'fastify' {
         channels: IDbChannelsAdapter;
         scheduleEvents: IDbScheduleEventsAdapter;
         mrssFeeds: IDbMRSSFeedsAdapter;
+        playlists: IDbPlaylistsAdapter;
       }
   }
 }

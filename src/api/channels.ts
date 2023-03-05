@@ -37,7 +37,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
     }, async (request, reply) => {
       const tenant = request.headers["host"];
       try {
-        if (tenant.match(/^localhost/)) {
+        if (tenant.match(/^localhost/) || process.env.NODE_ENV !== 'production') {
           const channels: Channel[] = await server.db.channels.listAll();
           return reply.code(200).send(channels);
         } else {
@@ -66,7 +66,7 @@ const ChannelsAPI: FastifyPluginAsync = async (fastify: FastifyInstance, options
       }, async (request, reply) => {
         const tenant = request.headers["host"];
         try {
-          if (!tenant.match(/^localhost/)) {
+          if (!tenant.match(/^localhost/) && process.env.NODE_ENV === 'production') {
             if (request.body.tenant !== tenant) {
               return reply.code(400).send(`Expected tenant to be ${tenant}`);
             }
