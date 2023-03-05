@@ -1,14 +1,118 @@
+import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions } from "fastify";
+import fp from "fastify-plugin";
+
 import Debug from "debug";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
+import { Type } from "@sinclair/typebox";
 
 import { IDbPlaylistsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
-import { Playlist } from "../models/playlistModel";
+import { Playlist, TPlaylist } from "../models/playlistModel";
 import { Channel } from "../models/channelModel";
 import { findOngoingAndFutureEvents, findLastEndTime } from "../util/events";
 import { ScheduleEvent, ScheduleEventType } from "../models/scheduleModel";
 
 const debug = Debug("playlist-auto-scheduler");
+
+interface IAPIPlaylistParams {
+  playlistId: string;
+}
+
+export const PlaylistAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyInstance, options: FastifyPluginOptions) => {
+  const { prefix } = options;
+
+  server.register(async (server: FastifyInstance) => {
+
+    server.post<{ Body: TPlaylist, Reply: TPlaylist|string }>(
+      "/playlist", 
+      {
+        schema: {
+          body: Playlist.schema,
+          response: {
+            200: Playlist.schema,
+            400: Type.String(),
+            500: Type.String(),
+          }
+        }
+      }, async (request, reply) => {
+        const playlistBody = request.body;
+        const tenant = request.headers["host"];
+        try {
+          if (!tenant.match(/^localhost/) && process.env.NODE_ENV === 'production') {
+            if (playlistBody.tenant !== tenant) {
+              return reply.code(400).send(`Expected tenant to be ${tenant}`);
+            }
+          }
+          const channel = await server.db.channels.getChannelById(playlistBody.channelId);
+          if (!channel) {
+            return reply.code(400).send(`No channel with ID ${playlistBody.channelId} was found. Must be created first.`);
+          }
+          const playlist = new Playlist(playlistBody);
+          await server.db.playlists.add(playlist);
+          return reply.code(200).send(playlist.item);
+        } catch (error) {
+          request.log.error(error);
+          return reply.code(500).send(error);
+        }
+      });
+
+    server.get("/playlist", {
+      schema: {
+        response: {
+          200: {
+            type: "array",
+            items: Playlist.schema,
+          }
+        }
+      }
+    }, async (request, reply) => {
+      const tenant = request.headers["host"];
+      try {
+        if (tenant.match(/^localhost/) || process.env.NODE_ENV !== 'production') {
+          const playlists: Playlist[] = await server.db.playlists.listAll();
+          return reply.code(200).send(playlists);
+        } else {
+          request.log.info(`Listing Playlists for tenant '${tenant}'`);
+          const playlists: Playlist[] = await server.db.playlists.list(tenant);
+          return reply.code(200).send(playlists);
+        }
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(500).send(error);
+      }
+    });
+
+    server.delete<{
+      Params: IAPIPlaylistParams, Reply: string
+    }>("/playlist/:playlistId", {
+      schema: {
+        description: "Remove a Playlist auto-scheduler",
+        params: {
+          playlistId: Type.String({ description: "The ID for the Playlist auto-scheduler" })
+        },
+        response: {
+          204: Type.String(),
+          400: Type.String()
+        }
+      }
+    }, async (request, reply) => {
+      try {
+        const playlist = await server.db.playlists.getPlaylistById(request.params.playlistId);
+        if (!playlist) {
+          return reply.code(400).send(`Playlist auto-scheduler with ID ${request.params.playlistId} does not exist`);
+        }
+        await server.db.playlists.remove(playlist.id);
+        reply.code(204);
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(500);
+      }
+    });    
+
+  }, { prefix });
+}
+
+export default fp(PlaylistAutoSchedulerAPI);
 
 export class PlaylistAutoScheduler {
   private playlistsDb: IDbPlaylistsAdapter;

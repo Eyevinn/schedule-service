@@ -6,7 +6,7 @@ import ChannelsAPI from "./src/api/channels";
 import RedirectPlugin, { RedirectPluginOptions } from "./src/api/redirect";
 import db from "./src/db/dynamodb";
 import { MRSSAutoSchedulerAPI, MRSSAutoScheduler } from "./src/auto_scheduler/mrss";
-import { PlaylistAutoScheduler } from "./src/auto_scheduler/playlist";
+import { PlaylistAutoSchedulerAPI, PlaylistAutoScheduler } from "./src/auto_scheduler/playlist";
 
 const dbUrl = process.env.DB || "dynamodb://localhost:5000/eu-north-1";
 const dbTablePrefix = process.env.DB_TABLE_PREFIX || "local";
@@ -37,6 +37,7 @@ const start = async() => {
   });
   await server.register(ChannelsAPI, { prefix: "/api/v1" });
   await server.register(MRSSAutoSchedulerAPI, { prefix: "/api/v1/auto" });
+  await server.register(PlaylistAutoSchedulerAPI, { prefix: "/api/v1/auto" });
   const redirectOptions: RedirectPluginOptions = {
     source: "/api/v1/mrss", destination: "/api/v1/auto/mrss"
   }
