@@ -3,6 +3,7 @@ import fastifySwagger from "fastify-swagger";
 
 import { version } from "./package.json";
 import ChannelsAPI from "./src/api/channels";
+import RedirectPlugin, { RedirectPluginOptions } from "./src/api/redirect";
 import db from "./src/db/dynamodb";
 import { MRSSAutoSchedulerAPI, MRSSAutoScheduler } from "./src/auto_scheduler/mrss";
 import { PlaylistAutoScheduler } from "./src/auto_scheduler/playlist";
@@ -35,7 +36,11 @@ const start = async() => {
     playlistsTableName: dbTablePrefix + "_playlists",
   });
   await server.register(ChannelsAPI, { prefix: "/api/v1" });
-  await server.register(MRSSAutoSchedulerAPI, { prefix: "/api/v1" });
+  await server.register(MRSSAutoSchedulerAPI, { prefix: "/api/v1/auto" });
+  const redirectOptions: RedirectPluginOptions = {
+    source: "/api/v1/mrss", destination: "/api/v1/auto/mrss"
+  }
+  await server.register(RedirectPlugin, redirectOptions);
   
   const mrssAutoScheduler = new MRSSAutoScheduler(server.db.mrssFeeds, server.db.scheduleEvents, server.db.channels);
   await mrssAutoScheduler.bootstrap(process.env.DEMO_TENANT || "demo");

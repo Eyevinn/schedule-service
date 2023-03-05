@@ -98,9 +98,9 @@ The MRSS auto scheduler automatically adds new schedule events on a channel base
 
 | ENDPOINT | METHOD | DESCRIPTION |
 | -------- | ------ | ----------- |
-| `/api/v1/mrss` | GET | List of running MRSS schedulers |
-| `/api/v1/mrss` | POST | Add a new MRSS scheduler (channel must exist) |
-| `/api/v1/mrss` | DELETE | Remove an MRSS scheduler but keeping the channel |
+| `/api/v1/auto/mrss` | GET | List of running MRSS schedulers |
+| `/api/v1/auto/mrss` | POST | Add a new MRSS scheduler (channel must exist) |
+| `/api/v1/auto/mrss` | DELETE | Remove an MRSS scheduler but keeping the channel |
 
 ### Example
 
@@ -130,9 +130,9 @@ is reached it starts from the top again.
 
 | ENDPOINT | METHOD | DESCRIPTION |
 | -------- | ------ | ----------- |
-| `/api/v1/playlist` | GET | List of running Playlist schedulers |
-| `/api/v1/playlist` | POST | Add a new Playlist scheduler (channel must exist) |
-| `/api/v1/playlist` | DELETE | Remove an Playlist scheduler but keeping the channel |
+| `/api/v1/auto/playlist` | GET | List of running Playlist schedulers |
+| `/api/v1/auto/playlist` | POST | Add a new Playlist scheduler (channel must exist) |
+| `/api/v1/auto/playlist` | DELETE | Remove an Playlist scheduler but keeping the channel |
 
 
 ## Support
