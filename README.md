@@ -55,6 +55,10 @@ Once up and running the service is by default available on port `8080` unless ot
 | `/api/v1/channels`| POST | Create a new channel |
 | `/api/v1/channels/{channelId}`| DELETE | Remove a channel |
 | `/api/v1/channels/{channelId}/schedule`| GET | Obtain the schedule for a channel |
+| `/api/v1/collection` | POST | Create a new asset collection |
+| `/api/v1/collection/{collectionId}?type=[mrss\|txt]` | GET | Return the contents of an asset collection either as mrss or txt file |
+| `/api/v1/collection/{collectionId}` | POST | Add an asset to an asset collection |
+| `/api/v1/collection/{collectionId}` | DELETE | Remove an asset collection |
 
 ## Example
 
