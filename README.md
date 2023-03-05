@@ -25,6 +25,17 @@ Start the schedule service
 DB=dynamodb://localhost:5050/eu-north-1 npm start
 ```
 
+Generate channels using the Eyevinn FAST Engine container.
+
+```
+docker run --rm -p 8000:8000 -p 8001:8001 \
+  -e FAST_PLUGIN=ScheduleService \
+  -e SCHEDULE_SERVICE_API_URL=http://host.docker.internal:8080/api/v1 \
+  eyevinntechnology/fast-engine
+```
+
+Then you have the channels available at `http://localhost:8000/channels/<channelId>/master.m3u8` or address your browser to the multiview page at `http://localhost:8001/`
+
 ## Docker
 
 Run schedule service and dynamodb container locally
