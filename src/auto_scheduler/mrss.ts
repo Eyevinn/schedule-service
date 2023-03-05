@@ -8,6 +8,7 @@ import { MRSSFeed, TMRSSFeed } from "../models/mrssFeedModel";
 import { ScheduleEvent, ScheduleEventType } from "../models/scheduleModel";
 import { Channel } from "../models/channelModel";
 import { IDbMRSSFeedsAdapter, IDbScheduleEventsAdapter, IDbChannelsAdapter } from "../db/interface";
+import { findOngoingAndFutureEvents, findLastEndTime } from "../util/events";
 import { Type } from "@sinclair/typebox";
 
 const debug = Debug("mrss-auto-scheduler");
@@ -35,7 +36,7 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
         const mrssFeedBody = request.body;
         const tenant = request.headers["host"];
         try {
-          if (!tenant.match(/^localhost/)) {
+          if (!tenant.match(/^localhost/) && process.env.NODE_ENV === 'production') {
             if (mrssFeedBody.tenant !== tenant) {
               return reply.code(400).send(`Expected tenant to be ${tenant}`);
             }
@@ -65,7 +66,7 @@ export const MRSSAutoSchedulerAPI: FastifyPluginAsync = async (server: FastifyIn
     }, async (request, reply) => {
       const tenant = request.headers["host"];
       try {
-        if (tenant.match(/^localhost/)) {
+        if (tenant.match(/^localhost/) || process.env.NODE_ENV !== 'production') {
           const feeds: MRSSFeed[] = await server.db.mrssFeeds.listAll();
           return reply.code(200).send(feeds);
         } else {
@@ -207,11 +208,11 @@ export class MRSSAutoScheduler {
       start: now.subtract(2 * 60 * 60, "second").valueOf(),
       end: now.add(12 * 60 * 60, "second").valueOf(),
     });
-    const ongoingAndFutureScheduleEvents = this.findOngoingAndFutureEvents(scheduleEvents, now);
+    const ongoingAndFutureScheduleEvents = findOngoingAndFutureEvents(scheduleEvents, now);
     if (ongoingAndFutureScheduleEvents.length <= 4) {
       const numberOfScheduleEvents = 5 - ongoingAndFutureScheduleEvents.length;
       let scheduleEventsToAdd: ScheduleEvent[] = [];
-      let nextStartTime = this.findLastEndTime(ongoingAndFutureScheduleEvents, now);
+      let nextStartTime = findLastEndTime(ongoingAndFutureScheduleEvents, now);
       for (let i = 0; i < numberOfScheduleEvents; i++) {
         let asset = assets[Math.floor(Math.random() * assets.length)];
         if (asset) {
@@ -259,31 +260,5 @@ export class MRSSAutoScheduler {
     if (numEventsRemoved) {
       console.log(`[${feed.channelId}]: Cleaned up and removed ${numEventsRemoved} schedule events for channel`);
     }
-  }
-
-  private findOngoingAndFutureEvents(scheduleEvents: ScheduleEvent[], now): ScheduleEvent[] {
-    return scheduleEvents.filter(scheduleEvent => {
-      // debug(`  ${scheduleEvent.end_time} > ${now.valueOf()} && ${scheduleEvent.start_time} < ${now.valueOf()}`);
-      if (scheduleEvent.end_time > now.valueOf() && scheduleEvent.start_time < now.valueOf()) {
-        return true;
-      }
-      if (scheduleEvent.start_time > now.valueOf()) {
-        return true;
-      }
-      return false;
-    });
-  }
-
-  private findLastEndTime(scheduleEvents: ScheduleEvent[], now): number {
-    if (scheduleEvents.length === 0) {
-      return now.valueOf();
-    }
-    let lastEndTime = now.valueOf();
-    for (let i = 0; i < scheduleEvents.length; i++) {
-      if (scheduleEvents[i].end_time > lastEndTime) {
-        lastEndTime = scheduleEvents[i].end_time;
-      }
-    }
-    return lastEndTime;
   }
 };

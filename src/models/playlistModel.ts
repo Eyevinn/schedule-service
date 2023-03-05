@@ -15,6 +15,7 @@ export interface PlaylistAttr {
 }
 
 export interface PlaylistEntry {
+  title: string;
   url: string;
   duration: number;
 }
@@ -78,6 +79,17 @@ export class Playlist {
     return this.cache ? this.cache.assets : [];
   }
 
+  getNext() {
+    if (this.position !== -1) {
+      const asset = this.cache.assets[this.position];
+      this.position++;
+      if (this.position > this.cache.assets.length - 1) {
+        this.position = 0;
+      }
+      return asset;
+    }
+  }
+
   async refresh() {
     const response = await fetch(this.attrs.url);
     if (response.ok) {
@@ -90,15 +102,20 @@ export class Playlist {
         };
         this.position = 0;
       }
-      for (const entry of entries) {
-        this.cache.assets.push({ url: entry, duration: -1 });
-      }
-      for (const asset of this.cache.assets) {
-        if (asset.duration === -1) {
-          // update duration
-          const duration = await hlsduration(new URL(asset.url));
-          asset.duration = Math.ceil(duration);
-          debug(`Updated asset duration for ${asset.url} to ${asset.duration}`);
+      if (entries.length !== this.cache.assets.length) {
+        this.cache.assets = [];
+        let i = 0;
+        for (const entry of entries) {
+          this.cache.assets.push({ title: `Entry ${i+1}`, url: entry.toString(), duration: -1 });
+          i++;
+        }
+        for (const asset of this.cache.assets) {
+          if (asset.duration === -1) {
+            // update duration
+            const duration = await hlsduration(new URL(asset.url));
+            asset.duration = Math.ceil(duration);
+            debug(`Updated asset duration for ${asset.url} to ${asset.duration}`);
+          }
         }
       }
     }
