@@ -138,7 +138,7 @@ export class PlaylistAutoScheduler {
         id: "eyevinn",
         tenant: demoTenant,
         channelId: "playlist",
-        url: "https://testcontent.eyevinn.technology/fast/svtdemo.txt",
+        url: "https://testcontent.eyevinn.technology/fast-demo/eyevinn.txt",
       });
       const demoChannel = await this.channelsDb.getChannelById("playlist");
       if (!demoChannel) {
@@ -146,8 +146,7 @@ export class PlaylistAutoScheduler {
         await this.channelsDb.add(new Channel({
           id: "playlist",
           tenant: demoTenant,
-          title: "Demo Channel",
-          audioTracks: [ { language: "en", name: "English", default: true }]
+          title: "Demo Channel"
         }));
       }
       await this.playlistsDb.add(demoPlaylist);
