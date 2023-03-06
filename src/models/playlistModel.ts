@@ -103,7 +103,7 @@ export class Playlist {
         this.position = 0;
       }
       if (entries.length !== this.cache.assets.length) {
-        this.cache.assets = [];
+        this.cache.assets = [];
         let i = 0;
         for (const entry of entries) {
           this.cache.assets.push({ title: `Entry ${i+1}`, url: entry.toString(), duration: -1 });
