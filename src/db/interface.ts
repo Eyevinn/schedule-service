@@ -2,7 +2,7 @@ import { Channel } from "../models/channelModel";
 import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
 import { MRSSFeed } from "../models/mrssFeedModel";
 import { Playlist } from "../models/playlistModel";
-import { Collection } from "../models/collectionModel";
+import { Collection } from "../models/collectionModel";
 
 export interface IDbPluginOptions {
   uri: string;
