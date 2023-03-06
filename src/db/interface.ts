@@ -2,6 +2,7 @@ import { Channel } from "../models/channelModel";
 import { ScheduleEvent, ScheduleRangeOptions } from "../models/scheduleModel";
 import { MRSSFeed } from "../models/mrssFeedModel";
 import { Playlist } from "../models/playlistModel";
+import { Collection } from "../models/collectionModel";
 
 export interface IDbPluginOptions {
   uri: string;
@@ -27,6 +28,15 @@ export interface IDbScheduleEventsAdapter {
   getScheduleEventsByChannelId: (channelId: string, rangeOpts: ScheduleRangeOptions) => Promise<ScheduleEvent[]>;
   remove: (id: string) => Promise<boolean>;
   removeScheduleEvents: (channelId: string, rangeOpts: ScheduleRangeOptions) => Promise<number>;
+}
+
+export interface IDbCollectionsAdapter {
+  init: () => Promise<void>;
+  list: (tenant: string) => Promise<Collection[]>;
+  listAll: () => Promise<Collection[]>;
+  add: (collection: Collection) => Promise<void>;
+  getCollectionById: (id: string) => Promise<Collection>;
+  remove: (id: string) => Promise<void>;
 }
 
 export interface IDbMRSSFeedsAdapter {
