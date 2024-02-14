@@ -8,7 +8,7 @@ import db from "./src/db/dynamodb";
 import { MRSSAutoSchedulerAPI, MRSSAutoScheduler } from "./src/auto_scheduler/mrss";
 import { PlaylistAutoSchedulerAPI, PlaylistAutoScheduler } from "./src/auto_scheduler/playlist";
 
-const dbUrl = process.env.DB || "dynamodb://localhost:5000/eu-north-1";
+const dbUrl = process.env.DB || "dynamodb://aws/" + process.env.AWS_REGION;
 const dbTablePrefix = process.env.DB_TABLE_PREFIX || "local";
 
 const start = async() => {
@@ -51,7 +51,7 @@ const start = async() => {
   await playlistAutoScheduler.bootstrap(process.env.DEMO_TENANT || "demo");
   await playlistAutoScheduler.run();
   
-  server.listen(process.env.PORT || 8080, process.env.IF || "127.0.0.1", (err, address) => {
+  server.listen(process.env.PORT || 8080, process.env.IF || "0.0.0.0", (err, address) => {
     if (err) {
       console.error(err);
       process.exit(1);
