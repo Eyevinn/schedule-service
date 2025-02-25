@@ -4,11 +4,10 @@ import fastifySwagger from "fastify-swagger";
 import { version } from "./package.json";
 import ChannelsAPI from "./src/api/channels";
 import RedirectPlugin, { RedirectPluginOptions } from "./src/api/redirect";
-import db from "./src/db/dynamodb";
 import { MRSSAutoSchedulerAPI, MRSSAutoScheduler } from "./src/auto_scheduler/mrss";
 import { PlaylistAutoSchedulerAPI, PlaylistAutoScheduler } from "./src/auto_scheduler/playlist";
 
-const dbUrl = process.env.DB || "dynamodb://aws/" + process.env.AWS_REGION;
+const dbUrl = new URL(process.env.DB || "dynamodb://aws/" + process.env.AWS_REGION);
 const dbTablePrefix = process.env.DB_TABLE_PREFIX || "local";
 
 const start = async() => {
@@ -28,8 +27,16 @@ const start = async() => {
     },
     exposeRoute: true,
   });
+  let db;
+  if (dbUrl.protocol === 'dynamodb:') {
+    db = await import("./src/db/dynamodb");
+  } else if (dbUrl.protocol === 'http:' || dbUrl.protocol === 'https:') {
+    db = await import("./src/db/couchdb");
+  } else {
+    throw new Error('Unsupported database: ' + dbUrl.protocol);
+  }
   await server.register(db, { 
-    uri: dbUrl,
+    uri: dbUrl.toString(),
     channelsTableName: dbTablePrefix + "_channels",
     schedulesTableName: dbTablePrefix + "_schedules",
     mrssFeedsTableName: dbTablePrefix + "_mrssFeeds",
